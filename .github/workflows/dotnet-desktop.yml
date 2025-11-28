@@ -1,0 +1,40 @@
+# Source - https://stackoverflow.com/q
+# Posted by Gabe
+# Retrieved 2025-11-28, License - CC BY-SA 4.0
+
+name: .NET
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    
+    - uses: actions/checkout@v2
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.1.x
+      
+    - name: Restore dependencies
+      run: dotnet restore src/my.Web.sln
+      
+    - name: Build application
+      run: dotnet build src/my.Web.sln --no-restore
+      
+    - name: Test application
+      run: dotnet test src/my.Web.sln --no-restore --verbosity normal
+      
+    - name: Publish artifacts to default path
+      run: dotnet publish src/my.Web.sln
+      
+    - name: Upload build artifacts for deployment
+      uses: actions/upload-artifact@v2
+      with:
+        name: Application
+        path: /home/runner/work/my-website/my-website/src/my.Web/bin/Debug/netcoreapp3.1/publish/
