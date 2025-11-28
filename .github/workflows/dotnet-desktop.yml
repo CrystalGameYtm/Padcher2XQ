@@ -23,9 +23,6 @@ jobs:
         owner: CrystalUM
         include-prerelease: 2.0.0-dev.x
       
-    - name: Restore dependencies
-      run: dotnet restore Padcher2XQ/Padcher2XQ.sln
-      
     - name: Build application
       run: dotnet build Padcher2XQ/Padcher2XQ.sln --no-restore
       
