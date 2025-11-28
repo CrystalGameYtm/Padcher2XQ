@@ -14,27 +14,27 @@ jobs:
     
     steps:
     
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     
     - name: Setup .NET
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v1.5.0
       with:
-        dotnet-version: 3.1.x
+        dotnet-version: 8.x.x
       
     - name: Restore dependencies
-      run: dotnet restore src/my.Web.sln
+      run: dotnet restore Padcher2XQ/Padcher2XQ.sln
       
     - name: Build application
-      run: dotnet build src/my.Web.sln --no-restore
+      run: dotnet build Padcher2XQ/Padcher2XQ.sln --no-restore
       
     - name: Test application
-      run: dotnet test src/my.Web.sln --no-restore --verbosity normal
+      run: dotnet test Padcher2XQ/Padcher2XQ.sln --no-restore --verbosity normal
       
     - name: Publish artifacts to default path
-      run: dotnet publish src/my.Web.sln
+      run: dotnet publish Padcher2XQ/Padcher2XQ.sln
       
     - name: Upload build artifacts for deployment
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: Application
-        path: /home/runner/work/my-website/my-website/src/my.Web/bin/Debug/netcoreapp3.1/publish/
+        path: /home/runner/work/Padcher2XQ/Padcher2XQ/bin/Debug/avaloniaui8.0/publish/
