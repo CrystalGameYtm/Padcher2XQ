@@ -24,13 +24,13 @@ jobs:
         include-prerelease: 2.0.0-dev.x
       
     - name: Build application
-      run: dotnet build Padcher2XQ/Padcher2XQ.sln --no-restore
+      run: dotnet build Padcher2XQ.sln --no-restore
       
     - name: Test application
-      run: dotnet test Padcher2XQ/Padcher2XQ.sln --no-restore --verbosity normal
+      run: dotnet test Padcher2XQ.sln --no-restore --verbosity normal
       
     - name: Publish artifacts to default path
-      run: dotnet publish Padcher2XQ/Padcher2XQ.sln
+      run: dotnet publish Padcher2XQ.sln
       
     - name: Upload build artifacts for deployment
       uses: actions/upload-artifact@v4
