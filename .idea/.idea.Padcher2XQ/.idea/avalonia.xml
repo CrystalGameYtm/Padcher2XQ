@@ -6,6 +6,7 @@
         <entry key="Padchar2X/App.axaml" value="Padchar2X/Padcher2XQ.csproj" />
         <entry key="Padchar2X/Views/MainWindow.axaml" value="Padchar2X/Padcher2XQ.csproj" />
         <entry key="Padchar2X/Views/SettingsWindow.axaml" value="Padchar2X/Padcher2XQ.csproj" />
+        <entry key="Padcher2XQ/Views/MainWindow.axaml" value="Padcher2XQ/Padcher2XQ.csproj" />
       </map>
     </option>
   </component>
