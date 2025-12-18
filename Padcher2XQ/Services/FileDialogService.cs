@@ -20,7 +20,8 @@ public class FileDialogService : IFileDialogService
         return null;
     }
 
-    public async Task<string?> OpenFileAsync(string title, string[] extensions)
+    // Реалізація з 3 аргументами та поверненням масиву
+    public async Task<string[]?> OpenFileAsync(string title, string[] extensions, bool allowMultiple = false)
     {
         var window = GetMainWindow();
         if (window is null) return null;
@@ -28,8 +29,7 @@ public class FileDialogService : IFileDialogService
         var options = new FilePickerOpenOptions
         {
             Title = title,
-            AllowMultiple = false,
-            // ВИПРАВЛЕНО ТУТ: new List замість newList
+            AllowMultiple = allowMultiple,
             FileTypeFilter = new List<FilePickerFileType>
             {
                 new FilePickerFileType("Supported Files") { Patterns = extensions },
@@ -38,7 +38,9 @@ public class FileDialogService : IFileDialogService
         };
 
         var result = await window.StorageProvider.OpenFilePickerAsync(options);
-        return result.Count > 0 ? result[0].Path.LocalPath : null;
+        
+        // Перетворюємо результат у масив рядків
+        return result.Count > 0 ? result.Select(x => x.Path.LocalPath).ToArray() : null;
     }
 
     public async Task<string?> SaveFileAsync(string title, string defaultName, string extension)
@@ -51,7 +53,6 @@ public class FileDialogService : IFileDialogService
             Title = title,
             SuggestedFileName = defaultName,
             DefaultExtension = extension,
-            // ВИПРАВЛЕНО ТУТ: new List замість newList
             FileTypeChoices = new List<FilePickerFileType>
             {
                 new FilePickerFileType(extension.ToUpper() + " File") { Patterns = new[] { $"*.{extension}" } }

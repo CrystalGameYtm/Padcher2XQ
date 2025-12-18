@@ -25,14 +25,17 @@
                         <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectRomFileCommand}"/>
                     </Grid>
 
-                    <!-- Секція файлу патча -->
                     <DockPanel>
-                        <TextBlock Text="Patch File" FontWeight="Bold" IsEnabled="{Binding !IsMultiPatchMode}" DockPanel.Dock="Left"/>
+                        <TextBlock Text="Patch File" FontWeight="Bold" DockPanel.Dock="Left"/>
                         <CheckBox Content="MultiPatch" IsChecked="{Binding IsMultiPatchMode, Mode=TwoWay}" HorizontalAlignment="Right"/>
                     </DockPanel>
+                
                     <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8">
-                        <TextBox Grid.Column="0" Text="{Binding PatchPath, Mode=TwoWay}" VerticalAlignment="Center" IsEnabled="{Binding !IsMultiPatchMode}"/>
-                        <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectPatchFileCommand}" IsEnabled="{Binding !IsMultiPatchMode}"/>
+                        <TextBox Grid.Column="0" 
+                                 Text="{Binding PatchPathDisplay, Mode=OneWay}" 
+                                 VerticalAlignment="Center" 
+                                 IsReadOnly="True"/>
+                        <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectPatchFileCommand}"/>
                     </Grid>
 
                     <!-- Секція вихідного файлу -->
@@ -58,9 +61,10 @@
                     </HeaderedContentControl>
                     
                     <!-- Головні кнопки -->
-                    <Grid ColumnDefinitions="*,*" Margin="0,16,0,0">
-                        <Button Grid.Column="0" Content="Open MultiPatch" Height="40" IsEnabled="{Binding IsMultiPatchMode}" HorizontalAlignment="Stretch" Margin="0,0,4,0"/>
-                        <Button Grid.Column="1" Content="Apply Patch" FontWeight="Bold" Height="40" Command="{Binding ApplyPatchCommand}" IsEnabled="{Binding !IsMultiPatchMode}" HorizontalAlignment="Stretch" Margin="4,0,0,0"/>
+                    <Grid ColumnDefinitions="*,*,*" Margin="0,16,0,0">
+                       
+                        <Button Grid.Column="1" Content="Open MultiPatch" Height="40" IsEnabled="{Binding IsMultiPatchMode}" HorizontalAlignment="Stretch" Margin="0,0,4,0"/>
+                        <Button Grid.Column="2" Content="Apply Patch" FontWeight="Bold" Height="40" Command="{Binding ApplyPatchCommand}" IsEnabled="{Binding !IsMultiPatchMode}" HorizontalAlignment="Stretch" Margin="4,0,0,0"/>
                     </Grid>
 
                     <!-- Текстовий блок для статусу -->
@@ -90,7 +94,6 @@
                     </Style>
                 </Button.Styles>
                 
-                <!-- Іконка-шестерня (символ Unicode) -->
                 <TextBlock Text="⚙" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Button>
         </Grid>

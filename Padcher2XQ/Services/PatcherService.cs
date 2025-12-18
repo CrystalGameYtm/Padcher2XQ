@@ -2,6 +2,10 @@ using System;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Linq;  
+using System.Diagnostics; 
+
 
 namespace Padcher2XQ.Services;
 
@@ -172,5 +176,153 @@ public class PatcherService
             result += shift;
         }
         return result;
+    }
+
+public async Task ApplyAsmPatchAsync(string romPath, string patchPath, string outputPath)
+    {
+        await Task.Run(() =>
+        {
+            if (!File.Exists("asar.dll"))
+                throw new FileNotFoundException("asar.dll not found! Please place it in the app directory.");
+
+            // Asar патчить "на місці", тому спочатку копіюємо
+            File.Copy(romPath, outputPath, true);
+
+            if (!AsarInterface.Init())
+                throw new Exception("Failed to initialize Asar.");
+
+            try
+            {
+                // Asar вимагає, щоб файл існував.
+                // Ми передаємо шлях до патча і шлях до РОМу
+                // Увага: Asar API в C# трохи складний, бо працює з пам'яттю.
+                // Найпростіший варіант для новачків - викликати asar.exe як процес,
+                // але якщо ми вже зробили DLL wrapper, спробуємо його використати (або спростимо до процесу).
+                
+                // ПРОСТИЙ ВАРІАНТ (через процес, надійніше для новачків):
+                if (File.Exists("asar.exe"))
+                {
+                    var startInfo = new ProcessStartInfo
+                    {
+                        FileName = "asar.exe",
+                        Arguments = $"\"{patchPath}\" \"{outputPath}\"",
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    };
+                    
+                    using var process = Process.Start(startInfo);
+                    process!.WaitForExit();
+                    
+                    if (process.ExitCode != 0)
+                    {
+                        string error = process.StandardError.ReadToEnd();
+                        throw new Exception($"Asar Error: {error}");
+                    }
+                }
+                else
+                {
+                    throw new FileNotFoundException("asar.exe not found.");
+                }
+            }
+            finally
+            {
+                AsarInterface.Close();
+            }
+        });
+    }
+
+    // --- NEW: Xdelta Patching ---
+    public async Task ApplyXdeltaPatchAsync(string romPath, string patchPath, string outputPath)
+    {
+        await Task.Run(() =>
+        {
+            // Для xdelta найкраще використовувати xdelta3.exe
+            if (!File.Exists("xdelta3.exe"))
+                throw new FileNotFoundException("xdelta3.exe not found! Please place it in the app directory.");
+
+            // Аргументи: -d (decompress/apply) -s (source) [SOURCE] [PATCH] [OUTPUT]
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "xdelta3.exe",
+                Arguments = $"-d -f -s \"{romPath}\" \"{patchPath}\" \"{outputPath}\"",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(startInfo);
+            process!.WaitForExit();
+
+            if (process.ExitCode != 0)
+            {
+                // xdelta іноді пише помилки в stdout
+                string error = process.StandardError.ReadToEnd(); 
+                if (string.IsNullOrEmpty(error)) error = process.StandardOutput.ReadToEnd();
+                
+                throw new Exception($"Xdelta Error (Code {process.ExitCode}): {error}");
+            }
+        });
+    }
+
+    // --- MASTER METHOD: Визначає тип патча ---
+    public async Task PatchSingleFileAsync(string romPath, string patchPath, string outputPath)
+    {
+        string ext = Path.GetExtension(patchPath).ToLower();
+        switch (ext)
+        {
+            case ".ips":
+                await ApplyIpsPatchAsync(romPath, patchPath, outputPath);
+                break;
+            case ".bps":
+                await ApplyBpsPatchAsync(romPath, patchPath, outputPath);
+                break;
+            case ".asm":
+                await ApplyAsmPatchAsync(romPath, patchPath, outputPath);
+                break;
+            case ".xdelta":
+                await ApplyXdeltaPatchAsync(romPath, patchPath, outputPath);
+                break;
+            default:
+                throw new NotSupportedException($"Format {ext} is not supported.");
+        }
+    }
+
+    // --- MULTI PATCHING (Sequential) ---
+    // Застосовує список патчів один за одним до одного ROMу
+    public async Task ApplyMultiplePatchesAsync(string romPath, List<string> patchPaths, string finalOutputPath)
+    {
+        string tempFile1 = Path.Combine(Path.GetTempPath(), "padcher_temp_1.sfc");
+        string tempFile2 = Path.Combine(Path.GetTempPath(), "padcher_temp_2.sfc");
+        
+        // Спочатку копіюємо оригінал у temp1
+        File.Copy(romPath, tempFile1, true);
+
+        string currentSource = tempFile1;
+        string currentTarget = tempFile2;
+
+        try
+        {
+            for (int i = 0; i < patchPaths.Count; i++)
+            {
+                // Визначаємо, куди писати результат (чергуємо файли)
+                currentTarget = (i % 2 == 0) ? tempFile2 : tempFile1;
+                currentSource = (i % 2 == 0) ? tempFile1 : tempFile2;
+
+                await PatchSingleFileAsync(currentSource, patchPaths[i], currentTarget);
+            }
+
+            // Копіюємо останній результат у фінальний шлях
+            if (File.Exists(finalOutputPath)) File.Delete(finalOutputPath);
+            File.Move(currentTarget, finalOutputPath);
+        }
+        finally
+        {
+            // Чистимо сміття
+            if (File.Exists(tempFile1)) File.Delete(tempFile1);
+            if (File.Exists(tempFile2)) File.Delete(tempFile2);
+        }
     }
 }

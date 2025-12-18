@@ -3165,7 +3165,8 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\CrystalUM_\\.nuget\\packages\\": {}
+    "E:\\Program\\JetBrains\\JetBrains Rider 2025.2.2.1\\nuget": {},
+    "E:\\Program\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
@@ -3173,16 +3174,22 @@
       "projectUniqueName": "D:\\Program\\repos\\Padcher2XQ\\Padcher2XQ\\Padcher2XQ.csproj",
       "projectName": "Padcher2XQ",
       "projectPath": "D:\\Program\\repos\\Padcher2XQ\\Padcher2XQ\\Padcher2XQ.csproj",
-      "packagesPath": "C:\\Users\\CrystalUM_\\.nuget\\packages\\",
+      "packagesPath": "E:\\Program\\JetBrains\\JetBrains Rider 2025.2.2.1\\nuget",
       "outputPath": "D:\\Program\\repos\\Padcher2XQ\\Padcher2XQ\\obj\\",
       "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "E:\\Program\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+      ],
       "configFilePaths": [
-        "C:\\Users\\CrystalUM_\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\CrystalUM_\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "net8.0"
       ],
       "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
