@@ -1,100 +1,99 @@
-    <Window xmlns="https://github.com/avaloniaui"
-            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-            xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-            xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-            xmlns:vm="using:Padcher2XQ.ViewModels"
-            mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="480"
-            x:Class="Padcher2XQ.Views.MainWindow"
-            x:DataType="vm:MainWindowViewModel"
-            Title="Padcher"
-            Width="520" Height="480" CanResize="False">
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:Padcher2XQ.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="480"
+        x:Class="Padcher2XQ.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        x:CompileBindings="True"
+        Title="Padcher2XQ"
+        Width="520" Height="480" CanResize="False"
+        WindowStartupLocation="CenterScreen">
 
-        <Design.DataContext>
-            <vm:MainWindowViewModel/>
-        </Design.DataContext>
-        
-        <!-- Використовуємо Grid як основний контейнер, щоб розмістити кнопку поверх всього -->
-        <Grid>
-            <!-- Основний контент програми -->
-            <DockPanel Margin="12">
-                <StackPanel Spacing="8">
-                    <!-- Секція ROM файлу -->
-                    <TextBlock Text="ROM File" FontWeight="Bold"/>
-                    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8">
-                        <TextBox Grid.Column="0" Text="{Binding RomPath, Mode=TwoWay}" VerticalAlignment="Center"/>
-                        <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectRomFileCommand}"/>
-                    </Grid>
-
-                    <DockPanel>
-                        <TextBlock Text="Patch File" FontWeight="Bold" DockPanel.Dock="Left"/>
-                        <CheckBox Content="MultiPatch" IsChecked="{Binding IsMultiPatchMode, Mode=TwoWay}" HorizontalAlignment="Right"/>
-                    </DockPanel>
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+    
+    <Grid>
+        <DockPanel Margin="16">
+            <StackPanel Spacing="10">
                 
-                    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8">
-                        <TextBox Grid.Column="0" 
-                                 Text="{Binding PatchPathDisplay, Mode=OneWay}" 
-                                 VerticalAlignment="Center" 
-                                 IsReadOnly="True"/>
-                        <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectPatchFileCommand}"/>
-                    </Grid>
+                <TextBlock Text="ROM File" FontWeight="SemiBold"/>
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBox Grid.Column="0" Text="{Binding RomPath}" Watermark="Select a ROM to patch..." VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectRomFileCommand}" ToolTip.Tip="Browse for ROM file"/>
+                </Grid>
 
-                    <!-- Секція вихідного файлу -->
-                    <TextBlock Text="Output File (New)" FontWeight="Bold" IsEnabled="{Binding !IsMultiPatchMode}"/>
-                    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8">
-                        <TextBox Grid.Column="0" Text="{Binding OutputPath, Mode=TwoWay}" VerticalAlignment="Center" IsEnabled="{Binding !IsMultiPatchMode}"/>
-                        <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectOutputFileCommand}" IsEnabled="{Binding !IsMultiPatchMode}"/>
-                    </Grid>
-                    
-                    <!-- Галочка "Ігнорувати контрольні суми" -->
-                    <CheckBox Content="Ignore Checksums" IsChecked="{Binding IgnoreChecksums, Mode=TwoWay}" IsEnabled="{Binding !IsMultiPatchMode}" Margin="0,4,0,8"/>
-                    
-                    <!-- Інформація про файл -->
-                    <HeaderedContentControl Header="{Binding FileInfoGroupName}" Padding="10">
-                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="CRC32:" FontWeight="SemiBold" Margin="0,0,10,0"/>
-                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Crc32}" FontFamily="monospace"/>
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="MD5:" FontWeight="SemiBold" Margin="0,0,10,0"/>
-                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Md5}" FontFamily="monospace"/>
+                <DockPanel Margin="0,8,0,0">
+                    <TextBlock Text="Patch File(s)" FontWeight="SemiBold" VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                    <CheckBox Content="MultiPatch Mode" IsChecked="{Binding IsMultiPatchMode}" HorizontalAlignment="Right"/>
+                </DockPanel>
+                
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBox Grid.Column="0" 
+                             Text="{Binding PatchPathDisplay}" 
+                             Watermark="Select patch file(s)..."
+                             VerticalAlignment="Center" 
+                             IsReadOnly="True" 
+                             Margin="0,0,8,0"/>
+                    <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectPatchFileCommand}" ToolTip.Tip="Browse for patch file(s)"/>
+                </Grid>
+
+                <TextBlock Text="Output File" FontWeight="SemiBold" IsEnabled="{Binding !IsMultiPatchMode}" Margin="0,8,0,0"/>
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBox Grid.Column="0" Text="{Binding OutputPath}" Watermark="Save as..." VerticalAlignment="Center" IsEnabled="{Binding !IsMultiPatchMode}" Margin="0,0,8,0"/>
+                    <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectOutputFileCommand}" IsEnabled="{Binding !IsMultiPatchMode}" ToolTip.Tip="Select output destination"/>
+                </Grid>
+                
+                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" 
+                        BorderThickness="1" 
+                        CornerRadius="4" 
+                        Padding="12" 
+                        Margin="0,12,0,0">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="{Binding FileInfoGroupName}" FontWeight="Bold" Margin="0,0,0,4"/>
+                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" Margin="8,0,0,0">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="CRC32:" FontWeight="SemiBold" Margin="0,0,10,4"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Crc32}" FontFamily="Consolas, Monospace"/>
+                            
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="MD5:" FontWeight="SemiBold" Margin="0,0,10,4"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Md5}" FontFamily="Consolas, Monospace"/>
+                            
                             <TextBlock Grid.Row="2" Grid.Column="0" Text="SHA-1:" FontWeight="SemiBold" Margin="0,0,10,0"/>
-                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Sha1}" FontFamily="monospace"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Sha1}" FontFamily="Consolas, Monospace"/>
                         </Grid>
-                    </HeaderedContentControl>
-                    
-                    <!-- Головні кнопки -->
-                    <Grid ColumnDefinitions="*,*,*" Margin="0,16,0,0">
-                       
-                        <Button Grid.Column="1" Content="Open MultiPatch" Height="40" IsEnabled="{Binding IsMultiPatchMode}" HorizontalAlignment="Stretch" Margin="0,0,4,0"/>
-                        <Button Grid.Column="2" Content="Apply Patch" FontWeight="Bold" Height="40" Command="{Binding ApplyPatchCommand}" IsEnabled="{Binding !IsMultiPatchMode}" HorizontalAlignment="Stretch" Margin="4,0,0,0"/>
-                    </Grid>
-
-                    <!-- Текстовий блок для статусу -->
-                    <TextBlock Text="{Binding StatusMessage}" 
-                               Foreground="{Binding StatusMessageColor}"
-                               HorizontalAlignment="Center"
-                               TextWrapping="Wrap"
-                               Margin="0,10,0,0"/>
-                </StackPanel>
-            </DockPanel>
-
-            <!-- Кнопка налаштувань поверх всього у верхньому правому куті -->
-            <Button Command="{Binding OpenSettingsCommand}"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Top"
-                    Margin="0,5,5,0"
-                    Width="30" Height="30">
-                <Button.Styles>
-                    <!-- Стилі, щоб зробити кнопку круглою і прозорою -->
-                    <Style Selector="Button">
-                        <Setter Property="Background" Value="Transparent"/>
-                        <Setter Property="BorderThickness" Value="0"/>
-                        <Setter Property="CornerRadius" Value="15"/>
-                    </Style>
-                    <Style Selector="Button:pointerover /template/ ContentPresenter">
-                        <Setter Property="Background" Value="#20000000"/>
-                    </Style>
-                </Button.Styles>
+                    </StackPanel>
+                </Border>
                 
-                <TextBlock Text="⚙" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            </Button>
-        </Grid>
-    </Window>
+                <Button Content="Apply Patch" 
+                        Classes="accent"
+                        FontWeight="Bold" 
+                        Height="45" 
+                        Command="{Binding ApplyPatchCommand}" 
+                        HorizontalAlignment="Stretch" 
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
+                        Margin="0,16,0,0"/>
+
+                <TextBlock Text="{Binding StatusMessage}" 
+                           Foreground="{Binding StatusMessageColor}"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Center"
+                           TextWrapping="Wrap"
+                           Margin="0,12,0,0"/>
+            </StackPanel>
+        </DockPanel>
+
+        <Button Command="{Binding OpenSettingsCommand}"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="0,8,8,0"
+                Width="32" Height="32"
+                CornerRadius="16"
+                Background="Transparent"
+                ToolTip.Tip="Open Settings">
+            <TextBlock Text="⚙" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Button>
+    </Grid>
+</Window>

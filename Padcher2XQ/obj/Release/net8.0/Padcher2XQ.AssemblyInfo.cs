@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Padcher2XQ")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d74f140dfc1843428a6f7f9cb6de716761c13de5")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5e506c9b860830322d68cb55d9818d7b040c62d6")]
 [assembly: System.Reflection.AssemblyProductAttribute("Padcher2XQ")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Padcher2XQ")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
