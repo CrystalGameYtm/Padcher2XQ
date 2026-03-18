@@ -21,7 +21,9 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))]
     private string? _romPath;
-
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))]
+    private string? _patchPath;
     [ObservableProperty] 
     [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))]
     private string? _outputPath;
@@ -54,9 +56,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private async Task SelectRomFile()
     {
         var paths = await _fileDialogService.OpenFileAsync("Select ROM File", new[] { "*.sfc", "*.smc", "*.bin", "*.iso", "*.gba", "*.nds" });
-        if (paths?.FirstOrDefault() is string path)
+        if (paths?.FirstOrDefault() is string path_rom)
         {
-            RomPath = path;
+            RomPath = path_rom;
             GenerateDefaultOutputPath();
             await CalculateRomChecksums();
             UpdateStatus("ROM loaded.", "Green");
@@ -67,10 +69,12 @@ public partial class MainWindowViewModel : ViewModelBase
     private async Task SelectPatchFile()
     {
         var paths = await _fileDialogService.OpenFileAsync(
-            IsMultiPatchMode ? "Select Patches" : "Select Patch", 
-            new[] { "*.ips", "*.bps", "*.asm", "*.xdelta" "*.ups" }, 
-            IsMultiPatchMode
-        );
+            IsMultiPatchMode ? "Select Patches" : "Select Patch", new[] { "*.ips", "*.bps", "*.asm", "*.xdelta", "*.ups" }, IsMultiPatchMode );
+            if (paths?.FirstOrDefault() is string path_patch)
+            {
+                PatchPath = path_patch; 
+            }
+      
 
         if (paths != null && paths.Length > 0)
         {
@@ -79,8 +83,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
             PatchPathDisplay = paths.Length == 1 ? paths[0] : $"{paths.Length} patches selected";
             GenerateDefaultOutputPath();
-            
-            // Оновлюємо стан команди
             ApplyPatchCommand.NotifyCanExecuteChanged();
         }
     }
@@ -147,10 +149,10 @@ public partial class MainWindowViewModel : ViewModelBase
         if (string.IsNullOrEmpty(RomPath) || SelectedPatches.Count == 0) return;
         
         string ext = Path.GetExtension(RomPath);
-        string name = Path.GetFileNameWithoutExtension(RomPath);
+        string name = Path.GetFileNameWithoutExtension(PatchPath);
         string dir = Path.GetDirectoryName(RomPath) ?? string.Empty;
         
-        OutputPath = Path.Combine(dir, $"{name}_patched{ext}");
+        OutputPath = Path.Combine(dir, $"{name}{ext}");
     }
 
     private void UpdateStatus(string message, string color)
