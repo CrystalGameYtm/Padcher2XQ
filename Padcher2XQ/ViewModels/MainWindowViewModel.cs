@@ -68,7 +68,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         var paths = await _fileDialogService.OpenFileAsync(
             IsMultiPatchMode ? "Select Patches" : "Select Patch", 
-            new[] { "*.ips", "*.bps", "*.asm", "*.xdelta" }, 
+            new[] { "*.ips", "*.bps", "*.asm", "*.xdelta" "*.ups" }, 
             IsMultiPatchMode
         );
 
