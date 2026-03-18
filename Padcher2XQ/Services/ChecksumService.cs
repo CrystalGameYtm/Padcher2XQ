@@ -11,7 +11,6 @@ public class ChecksumService
 
     static ChecksumService()
     {
-        // Ініціалізуємо таблицю CRC32 один раз при старті програми
         Crc32Table = new uint[256];
         const uint poly = 0xEDB88320;
         for (uint i = 0; i < 256; i++)

@@ -3,97 +3,33 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:Padcher2XQ.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="480"
+        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="250"
         x:Class="Padcher2XQ.Views.SettingsWindow"
-        x:DataType="vm:MainWindowViewModel"
+        x:DataType="vm:SettingsViewModel"
         x:CompileBindings="True"
-        Title="Padcher2XQ"
-        Width="520" Height="480" CanResize="False"
-        WindowStartupLocation="CenterScreen">
+        Title="Settings"
+        Width="400" Height="250"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
 
     <Design.DataContext>
-        <vm:MainWindowViewModel/>
+        <vm:SettingsViewModel/>
     </Design.DataContext>
     
-    <Grid>
-        <DockPanel Margin="16">
-            <StackPanel Spacing="10">
-                
-                <TextBlock Text="ROM File" FontWeight="SemiBold"/>
-                <Grid ColumnDefinitions="*,Auto">
-                    <TextBox Grid.Column="0" Text="{Binding RomPath}" Watermark="Select a ROM to patch..." VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectRomFileCommand}" ToolTip.Tip="Browse for ROM file"/>
-                </Grid>
-
-                <DockPanel Margin="0,8,0,0">
-                    <TextBlock Text="Patch File(s)" FontWeight="SemiBold" VerticalAlignment="Center" DockPanel.Dock="Left"/>
-                    <CheckBox Content="MultiPatch Mode" IsChecked="{Binding IsMultiPatchMode}" HorizontalAlignment="Right"/>
-                </DockPanel>
-                
-                <Grid ColumnDefinitions="*,Auto">
-                    <TextBox Grid.Column="0" 
-                             Text="{Binding PatchPathDisplay}" 
-                             Watermark="Select patch file(s)..."
-                             VerticalAlignment="Center" 
-                             IsReadOnly="True" 
-                             Margin="0,0,8,0"/>
-                    <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectPatchFileCommand}" ToolTip.Tip="Browse for patch file(s)"/>
-                </Grid>
-
-                <TextBlock Text="Output File" FontWeight="SemiBold" IsEnabled="{Binding !IsMultiPatchMode}" Margin="0,8,0,0"/>
-                <Grid ColumnDefinitions="*,Auto">
-                    <TextBox Grid.Column="0" Text="{Binding OutputPath}" Watermark="Save as..." VerticalAlignment="Center" IsEnabled="{Binding !IsMultiPatchMode}" Margin="0,0,8,0"/>
-                    <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectOutputFileCommand}" IsEnabled="{Binding !IsMultiPatchMode}" ToolTip.Tip="Select output destination"/>
-                </Grid>
-                
-                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" 
-                        BorderThickness="1" 
-                        CornerRadius="4" 
-                        Padding="12" 
-                        Margin="0,12,0,0">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="{Binding FileInfoGroupName}" FontWeight="Bold" Margin="0,0,0,4"/>
-                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" Margin="8,0,0,0">
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="CRC32:" FontWeight="SemiBold" Margin="0,0,10,4"/>
-                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Crc32}" FontFamily="Consolas, Monospace"/>
-                            
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="MD5:" FontWeight="SemiBold" Margin="0,0,10,4"/>
-                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Md5}" FontFamily="Consolas, Monospace"/>
-                            
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="SHA-1:" FontWeight="SemiBold" Margin="0,0,10,0"/>
-                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Sha1}" FontFamily="Consolas, Monospace"/>
-                        </Grid>
-                    </StackPanel>
-                </Border>
-                
-                <Button Content="Apply Patch" 
-                        Classes="accent"
-                        FontWeight="Bold" 
-                        Height="45" 
-                        Command="{Binding ApplyPatchCommand}" 
-                        HorizontalAlignment="Stretch" 
-                        HorizontalContentAlignment="Center"
-                        VerticalContentAlignment="Center"
-                        Margin="0,16,0,0"/>
-
-                <TextBlock Text="{Binding StatusMessage}" 
-                           Foreground="{Binding StatusMessageColor}"
-                           FontWeight="SemiBold"
-                           HorizontalAlignment="Center"
-                           TextWrapping="Wrap"
-                           Margin="0,12,0,0"/>
-            </StackPanel>
-        </DockPanel>
-
-        <Button Command="{Binding OpenSettingsCommand}"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Top"
-                Margin="0,8,8,0"
-                Width="32" Height="32"
-                CornerRadius="16"
-                Background="Transparent"
-                ToolTip.Tip="Open Settings">
-            <TextBlock Text="⚙" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-        </Button>
-    </Grid>
+    <StackPanel Spacing="15" Margin="20">
+        <TextBlock Text="Application Settings" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
+        
+        <CheckBox Content="Use Dark Mode (requires restart)" 
+                  IsChecked="{Binding IsDarkMode}"/>
+        
+        <StackPanel Spacing="5">
+            <TextBlock Text="Path to asar.exe:"/>
+            <TextBox Text="{Binding AsarPath}" Watermark="e.g. asar.exe or C:\tools\asar.exe"/>
+        </StackPanel>
+        
+        <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button Content="Save" IsDefault="True" Width="80" HorizontalContentAlignment="Center" Click="OnSaveClick"/>
+            <Button Content="Cancel" IsCancel="True" Width="80" HorizontalContentAlignment="Center" Click="OnCancelClick"/>
+        </StackPanel>
+    </StackPanel>
 </Window>

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Padcher2XQ")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f1f3c96529e6d2bcf049b195f90018cda3f6c3e7")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
 [assembly: System.Reflection.AssemblyProductAttribute("Padcher2XQ")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Padcher2XQ")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

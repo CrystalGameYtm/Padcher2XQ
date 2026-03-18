@@ -19,6 +19,7 @@ public class PatcherService
             { ".ips", ApplyIpsPatchAsync },
             { ".bps", ApplyBpsPatchAsync },
             { ".asm", ApplyAsmPatchAsync },
+            {".ups", }
             { ".xdelta", ApplyXdeltaPatchAsync }
         };
     }
@@ -94,7 +95,48 @@ public class PatcherService
             throw new Exception($"Asar Error: {error}");
         }
     }
+    private async Task ApplyUpsPatchAsync(string romPath, string patchPath, string outputPath)
+    {
+        await Task.Run(() =>
+        {
+            byte[] sourceData = File.ReadAllBytes(romPath);
+            byte[] patchData = File.ReadAllBytes(patchPath);
 
+            // Перевірка заголовка "UPS1"
+            if (patchData.Length < 16 || Encoding.ASCII.GetString(patchData, 0, 4) != "UPS1")
+                throw new Exception("Invalid UPS file header.");
+
+            int patchOffset = 4;
+
+            // Декодуємо розміри (використовуємо існуючий метод для VLI)
+            ulong sourceSize = DecodeBpsNumber(patchData, ref patchOffset);
+            ulong targetSize = DecodeBpsNumber(patchData, ref patchOffset);
+
+            byte[] targetData = new byte[targetSize];
+        
+            Array.Copy(sourceData, targetData, Math.Min((long)sourceSize, (long)targetSize));
+
+            long romOffset = 0;
+
+            while (patchOffset < patchData.Length - 12)
+            {
+                romOffset += (long)DecodeBpsNumber(patchData, ref patchOffset);
+            
+                while (true)
+                {
+                    byte xorByte = patchData[patchOffset++];
+                
+                    if (xorByte == 0) break;
+                
+                    targetData[romOffset] ^= xorByte;
+                    romOffset++;
+                }
+                romOffset++;
+            }
+
+            File.WriteAllBytes(outputPath, targetData);
+        });
+    }
     private async Task ApplyXdeltaPatchAsync(string romPath, string patchPath, string outputPath)
     {
         if (!File.Exists("xdelta3.exe"))
@@ -122,9 +164,6 @@ public class PatcherService
             throw new Exception($"Xdelta Error (Code {process.ExitCode}): {error}");
         }
     }
-
-    // Примітка: ApplyIpsPatchAsync та ApplyBpsPatchAsync залишаються без змін, 
-    // оскільки їхня логіка побайтового читання цілком коректна.
     private async Task ApplyIpsPatchAsync(string romPath, string patchPath, string outputPath) { /* ... Ваш існуючий код ... */ }
     private async Task ApplyBpsPatchAsync(string romPath, string patchPath, string outputPath) { /* ... Ваш існуючий код ... */ }
 }
