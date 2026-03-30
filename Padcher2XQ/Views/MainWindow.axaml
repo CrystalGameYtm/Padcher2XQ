@@ -8,7 +8,7 @@
         x:DataType="vm:MainWindowViewModel"
         x:CompileBindings="True"
         Title="Padcher2XQ"
-        Width="520" Height="480" CanResize="False"
+        Width="520" Height="500" CanResize="False"
         WindowStartupLocation="CenterScreen">
 
     <Design.DataContext>
@@ -88,8 +88,8 @@
         <Button Command="{Binding OpenSettingsCommand}"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Top"
-                Margin="0,8,8,0"
-                Width="32" Height="32"
+                Margin="0,8, 8,0"
+                Width="40" Height="32"
                 CornerRadius="16"
                 Background="Transparent"
                 ToolTip.Tip="Open Settings">
