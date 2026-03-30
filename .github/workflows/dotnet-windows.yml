@@ -72,14 +72,14 @@ jobs:
         run: zip -r -j Padcher2XQ-Windows.zip ./release/windows/*
 
       - name: Zip Linux Release
-        run: zip -r -j Padcher2XQ-Linux.zip ./release/linux/*
+        run: zip -r -j Padcher2XQ-Linux.tar.gz ./release/linux/*
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             Padcher2XQ-Windows.zip
-            Padcher2XQ-Linux.zip
+            Padcher2XQ-Linux.tar.gz
           generate_release_notes: truename: .NET Avalonia Build
 on:
   push:
