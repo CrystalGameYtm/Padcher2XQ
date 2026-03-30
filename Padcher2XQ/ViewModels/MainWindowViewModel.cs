@@ -96,7 +96,6 @@ public partial class MainWindowViewModel : ViewModelBase
         if (path != null) OutputPath = path;
     }
     
-    // Кнопка буде активною тільки тоді, коли цей метод повертає true
     private bool CanApplyPatch() => !string.IsNullOrEmpty(RomPath) && SelectedPatches.Any() && !string.IsNullOrEmpty(OutputPath);
 
     [RelayCommand(CanExecute = nameof(CanApplyPatch))]
@@ -149,7 +148,7 @@ public partial class MainWindowViewModel : ViewModelBase
         if (string.IsNullOrEmpty(RomPath) || SelectedPatches.Count == 0) return;
         
         string ext = Path.GetExtension(RomPath);
-        string name = Path.GetFileNameWithoutExtension(PatchPath);
+        var name = Path.GetFileNameWithoutExtension(PatchPath);
         string dir = Path.GetDirectoryName(RomPath) ?? string.Empty;
         
         OutputPath = Path.Combine(dir, $"{name}{ext}");
