@@ -2,11 +2,11 @@ name: .NET Avalonia Build & Release
 
 on:
   push:
-    branches: [ master ]
+    branches: [ canary ]
     tags:
       - 'v*'
   pull_request:
-    branches: [ master ]
+    branches: [ canary ]
 
 jobs:
   # 1. Збірка виключно для Windows
