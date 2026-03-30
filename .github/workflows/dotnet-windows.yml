@@ -1,4 +1,86 @@
-name: .NET Avalonia Build
+name: .NET Avalonia Build & Release
+
+on:
+  push:
+    branches: [ master ]
+    tags:
+      - 'v*' # Тригер спрацює тільки якщо пушнути тег, що починається на 'v' (наприклад, v1.0.0)
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+            artifact_name: Padcher2XQ-Windows
+          - os: ubuntu-latest
+            rid: linux-x64
+            artifact_name: Padcher2XQ-Linux
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore Padcher2XQ.sln
+
+    - name: Build application
+      run: dotnet build Padcher2XQ.sln --configuration Release --no-restore
+
+    - name: Test application
+      run: dotnet test Padcher2XQ.sln --configuration Release --no-build --verbosity normal
+
+    - name: Publish artifacts
+      run: dotnet publish Padcher2XQ.sln --configuration Release -r ${{ matrix.rid }} --self-contained true -p:PublishSingleFile=true --output ./dist
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact_name }}
+        path: ./dist
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') # Виконуємо тільки для тегів
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Необхідні права для створення релізу в репозиторії
+
+    steps:
+      - name: Download Windows Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Padcher2XQ-Windows
+          path: ./release/windows
+
+      - name: Download Linux Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Padcher2XQ-Linux
+          path: ./release/linux
+
+      - name: Zip Windows Release
+        run: zip -r -j Padcher2XQ-Windows.zip ./release/windows/*
+
+      - name: Zip Linux Release
+        run: zip -r -j Padcher2XQ-Linux.tar.gz ./release/linux/*
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            Padcher2XQ-Windows.zip
+            Padcher2XQ-Linux.tar.gz
+          generate_release_notes: truename: .NET Avalonia Build
 on:
   push:
     branches: [ master ]
