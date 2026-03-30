@@ -10,16 +10,17 @@ namespace Padcher2XQ.Services;
 public class PatcherService
 {
     private readonly Dictionary<string, Func<string, string, string, Task>> _patchStrategies;
+    private readonly SettingsService _settings;
 
-    public PatcherService()
+    public PatcherService(SettingsService settings)
     {
-        // Реєструємо всі підтримувані формати
+        _settings = settings;
         _patchStrategies = new Dictionary<string, Func<string, string, string, Task>>(StringComparer.OrdinalIgnoreCase)
         {
             { ".ips", ApplyIpsPatchAsync },
             { ".bps", ApplyBpsPatchAsync },
+            { ".ups", ApplyUpsPatchAsync },
             { ".asm", ApplyAsmPatchAsync },
-            {".ups", ApplyUpsPatchAsync },
             { ".xdelta", ApplyXdeltaPatchAsync }
         };
     }
@@ -69,14 +70,17 @@ public class PatcherService
 
     private async Task ApplyAsmPatchAsync(string romPath, string patchPath, string outputPath)
     {
-        if (!File.Exists("asar.exe"))
-            throw new FileNotFoundException("asar.exe not found! Please place it in the app directory.");
+        string asarPath = _settings.Config.AsarPath;
+        if (string.IsNullOrWhiteSpace(asarPath)) asarPath = "asar.exe";
+
+        if (Path.IsPathRooted(asarPath) && !File.Exists(asarPath))
+            throw new FileNotFoundException($"Asar executable not found at: {asarPath}");
 
         File.Copy(romPath, outputPath, true);
 
         var startInfo = new ProcessStartInfo
         {
-            FileName = "asar.exe",
+            FileName = asarPath,
             Arguments = $"\"{patchPath}\" \"{outputPath}\"",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -85,7 +89,7 @@ public class PatcherService
         };
 
         using var process = Process.Start(startInfo);
-        if (process == null) throw new Exception("Failed to start asar.exe process.");
+        if (process == null) throw new Exception("Failed to start Asar process.");
         
         await process.WaitForExitAsync();
 
@@ -139,8 +143,11 @@ public class PatcherService
     }
     private async Task ApplyXdeltaPatchAsync(string romPath, string patchPath, string outputPath)
     {
-        if (!File.Exists("xdelta3.exe"))
-            throw new FileNotFoundException("xdelta3.exe not found! Please place it in the app directory.");
+        string xdeltaPath = _settings.Config.AsarPath;
+        if (string.IsNullOrWhiteSpace(xdeltaPath)) xdeltaPath = "xDelta3.exe";
+
+        if (Path.IsPathRooted(xdeltaPath) && !File.Exists(xdeltaPath))
+            throw new FileNotFoundException($"xDelta3 executable not found at: {xdeltaPath}");
 
         var startInfo = new ProcessStartInfo
         {

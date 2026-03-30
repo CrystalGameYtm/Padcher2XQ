@@ -1,35 +1,37 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:Padcher2XQ.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="250"
         x:Class="Padcher2XQ.Views.SettingsWindow"
         x:DataType="vm:SettingsViewModel"
         x:CompileBindings="True"
         Title="Settings"
-        Width="400" Height="250"
+        Width="480" Height="320"
         CanResize="False"
         WindowStartupLocation="CenterOwner">
 
-    <Design.DataContext>
-        <vm:SettingsViewModel/>
-    </Design.DataContext>
-    
     <StackPanel Spacing="15" Margin="20">
         <TextBlock Text="Application Settings" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
         
-        <CheckBox Content="Use Dark Mode (requires restart)" 
-                  IsChecked="{Binding IsDarkMode}"/>
+        <CheckBox Content="Use Dark Mode" IsChecked="{Binding IsDarkMode}"/>
         
         <StackPanel Spacing="5">
-            <TextBlock Text="Path to asar.exe:"/>
-            <TextBox Text="{Binding AsarPath}" Watermark="e.g. asar.exe or C:\tools\asar.exe"/>
+            <TextBlock Text="Path to asar executable:"/>
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBox Grid.Column="0" Text="{Binding AsarPath}" Watermark="e.g. asar.exe or /usr/bin/asar" Margin="0,0,8,0"/>
+                <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectAsarFileCommand}"/>
+            </Grid>
+        </StackPanel>
+
+        <StackPanel Spacing="5">
+            <TextBlock Text="Path to xdelta3 executable:"/>
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBox Grid.Column="0" Text="{Binding XdeltaPath}" Watermark="e.g. xdelta3.exe or /usr/bin/xdelta3" Margin="0,0,8,0"/>
+                <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectXdeltaFileCommand}"/>
+            </Grid>
         </StackPanel>
         
         <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right" Margin="0,20,0,0">
-            <Button Content="Save" IsDefault="True" Width="80" HorizontalContentAlignment="Center" Click="OnSaveClick"/>
-            <Button Content="Cancel" IsCancel="True" Width="80" HorizontalContentAlignment="Center" Click="OnCancelClick"/>
+            <Button Content="Close" IsDefault="True" Width="80" HorizontalContentAlignment="Center" Click="OnCloseClick"/>
         </StackPanel>
     </StackPanel>
 </Window>

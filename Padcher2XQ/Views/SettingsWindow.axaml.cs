@@ -20,8 +20,8 @@ public partial class SettingsWindow : Window
         
         this.Close();
     }
-
-    private void OnCancelClick(object? sender, RoutedEventArgs e)
+    
+    private void OnCloseClick(object? sender, RoutedEventArgs e)
     {
         this.Close();
     }
