@@ -1,44 +1,17 @@
 using System;
 using System.IO;
 using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Padcher2XQ.Services;
 
 public class ChecksumService
 {
-    public async Task<(string crc32, string md5, string sha1)> CalculateChecksumsAsync(string filePath)
+    private static readonly uint[] Crc32Table;
+
+    static ChecksumService()
     {
-        return await Task.Run(() =>
-        {
-            if (!File.Exists(filePath)) return ("N/A", "N/A", "N/A");
-
-            using var stream = File.OpenRead(filePath);
-            
-            // CRC32
-            var crc32 = CalculateCrc32(stream);
-            stream.Position = 0;
-
-            // MD5
-            using var md5 = MD5.Create();
-            var md5Bytes = md5.ComputeHash(stream);
-            var md5String = BitConverter.ToString(md5Bytes).Replace("-", "");
-            stream.Position = 0;
-
-            // SHA1
-            using var sha1 = SHA1.Create();
-            var sha1Bytes = sha1.ComputeHash(stream);
-            var sha1String = BitConverter.ToString(sha1Bytes).Replace("-", "");
-
-            return (crc32, md5String, sha1String);
-        });
-    }
-
-    private string CalculateCrc32(Stream stream)
-    {
-        // Базова таблична реалізація CRC32
-        uint[] table = new uint[256];
+        Crc32Table = new uint[256];
         const uint poly = 0xEDB88320;
         for (uint i = 0; i < 256; i++)
         {
@@ -48,17 +21,45 @@ public class ChecksumService
                 if ((crc & 1) == 1) crc = (crc >> 1) ^ poly;
                 else crc >>= 1;
             }
-            table[i] = crc;
+            Crc32Table[i] = crc;
         }
+    }
 
-        uint crcValue = 0xFFFFFFFF;
-        int byteValue;
-        while ((byteValue = stream.ReadByte()) != -1)
+    public async Task<(string crc32, string md5, string sha1)> CalculateChecksumsAsync(string filePath)
+    {
+        return await Task.Run(() =>
         {
-            byte index = (byte)(((crcValue) & 0xFF) ^ byteValue);
-            crcValue = (crcValue >> 8) ^ table[index];
-        }
+            if (!File.Exists(filePath)) return ("N/A", "N/A", "N/A");
 
-        return (~crcValue).ToString("X8");
+            using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 8192);
+            using var md5 = MD5.Create();
+            using var sha1 = SHA1.Create();
+
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            uint crcValue = 0xFFFFFFFF;
+
+            // Читаємо файл за один прохід блоками
+            while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                md5.TransformBlock(buffer, 0, bytesRead, null, 0);
+                sha1.TransformBlock(buffer, 0, bytesRead, null, 0);
+
+                for (int i = 0; i < bytesRead; i++)
+                {
+                    byte index = (byte)((crcValue & 0xFF) ^ buffer[i]);
+                    crcValue = (crcValue >> 8) ^ Crc32Table[index];
+                }
+            }
+
+            md5.TransformFinalBlock(buffer, 0, 0);
+            sha1.TransformFinalBlock(buffer, 0, 0);
+
+            string crc32Result = (~crcValue).ToString("X8");
+            string md5Result = BitConverter.ToString(md5.Hash!).Replace("-", "");
+            string sha1Result = BitConverter.ToString(sha1.Hash!).Replace("-", "");
+
+            return (crc32Result, md5Result, sha1Result);
+        });
     }
 }

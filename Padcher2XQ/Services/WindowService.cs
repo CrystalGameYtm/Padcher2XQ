@@ -1,4 +1,3 @@
-// Services/WindowService.cs
 using Avalonia.Controls;
 using Microsoft.Extensions.DependencyInjection;
 using Padcher2XQ.ViewModels;
@@ -8,13 +7,11 @@ using Avalonia;
 
 namespace Padcher2XQ.Services;
 
-// Інтерфейс
 public interface IWindowService
 {
     void ShowSettingsWindow();
 }
 
-// Реалізація
 public class WindowService : IWindowService
 {
     private readonly IServiceProvider _serviceProvider;

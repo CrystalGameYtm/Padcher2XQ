@@ -33,7 +33,7 @@ public partial class App : Application
         // Реєструємо ViewModel
         services.AddSingleton<MainWindowViewModel>();
         services.AddTransient<SettingsViewModel>();
-
+        services.AddSingleton<SettingsService>();
         Services = services.BuildServiceProvider();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
