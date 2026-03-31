@@ -40,10 +40,10 @@
                     <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectPatchFileCommand}" ToolTip.Tip="Browse for patch file(s)"/>
                 </Grid>
 
-                <TextBlock Text="Output File" FontWeight="SemiBold" IsEnabled="{Binding !IsMultiPatchMode}" Margin="0,8,0,0"/>
+                <TextBlock Text="Output File" FontWeight="SemiBold"  Margin="0,8,0,0"/>
                 <Grid ColumnDefinitions="*,Auto">
-                    <TextBox Grid.Column="0" Text="{Binding OutputPath}" Watermark="Save as..." VerticalAlignment="Center" IsEnabled="{Binding !IsMultiPatchMode}" Margin="0,0,8,0"/>
-                    <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectOutputFileCommand}" IsEnabled="{Binding !IsMultiPatchMode}" ToolTip.Tip="Select output destination"/>
+                    <TextBox Grid.Column="0" Text="{Binding OutputPath}" Watermark="Save as..." VerticalAlignment="Center"  Margin="0,0,8,0"/>
+                    <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectOutputFileCommand}"  ToolTip.Tip="Select output destination"/>
                 </Grid>
                 
                 <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" 

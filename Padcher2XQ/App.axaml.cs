@@ -24,13 +24,11 @@ public partial class App : Application
     {
         var services = new ServiceCollection();
         
-        // Реєструємо сервіси
         services.AddSingleton<IWindowService, WindowService>();
-        services.AddSingleton(this); // Додаємо посилання на сам App
+        services.AddSingleton(this); 
         services.AddSingleton<IFileDialogService, FileDialogService>();
         services.AddSingleton<PatcherService>();
         services.AddSingleton<ChecksumService>();
-        // Реєструємо ViewModel
         services.AddSingleton<MainWindowViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddSingleton<SettingsService>();

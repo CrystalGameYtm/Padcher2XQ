@@ -106,13 +106,11 @@ public class PatcherService
             byte[] sourceData = File.ReadAllBytes(romPath);
             byte[] patchData = File.ReadAllBytes(patchPath);
 
-            // Перевірка заголовка "UPS1"
             if (patchData.Length < 16 || Encoding.ASCII.GetString(patchData, 0, 4) != "UPS1")
                 throw new Exception("Invalid UPS file header.");
 
             int patchOffset = 4;
 
-            // Декодуємо розміри (використовуємо існуючий метод для VLI)
             ulong sourceSize = DecodeBpsNumber(patchData, ref patchOffset);
             ulong targetSize = DecodeBpsNumber(patchData, ref patchOffset);
 
