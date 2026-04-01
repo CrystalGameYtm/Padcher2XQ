@@ -32,6 +32,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private bool _ignoreChecksums;
     [ObservableProperty] private bool _isMultiPatchMode;
     [ObservableProperty] private bool _isOriginalChecksum = true;
+    [ObservableProperty] private bool _hasPatchedFile;
     [ObservableProperty] private string _crc32 = "---";
     [ObservableProperty] private string _md5 = "---";
     [ObservableProperty] private string _sha1 = "---";
@@ -70,7 +71,6 @@ public partial class MainWindowViewModel : ViewModelBase
             var (c, m, s) = await _checksumService.CalculateChecksumsAsync(RomPath);
             _checksumService.SetOriginalChecksums(c,m,s);
             _patchedCrc32 = "---"; _patchedMd5 = "---"; _patchedSha1 = "---";
-            IsOriginalChecksum = true;
             CalculateRomChecksums(c, m, s, "File Information (Original ROM)");
             UpdateStatus("ROM loaded.", "Green");
         }
@@ -128,7 +128,7 @@ public partial class MainWindowViewModel : ViewModelBase
             FileInfoGroupName = "Calculate Checksums...";
             var (c, m, s) = await _checksumService.CalculateChecksumsAsync(RomPath);
             _patchedCrc32 = "---"; _patchedMd5 = "---"; _patchedSha1 = "---";
-            IsOriginalChecksum = false;
+            
             UpdateStatus("Success! All patches applied.", "Green");
         }
         catch (Exception ex)
