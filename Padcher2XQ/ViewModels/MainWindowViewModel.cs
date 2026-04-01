@@ -31,10 +31,13 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private string? _patchPathDisplay; 
     [ObservableProperty] private bool _ignoreChecksums;
     [ObservableProperty] private bool _isMultiPatchMode;
-    
+    [ObservableProperty] private bool _isOriginalChecksum = true;
     [ObservableProperty] private string _crc32 = "---";
     [ObservableProperty] private string _md5 = "---";
     [ObservableProperty] private string _sha1 = "---";
+    private string _patchedCrc32 = "---";
+    private string _patchedMd5 = "---";
+    private string _patchedSha1 = "---";
     
     [ObservableProperty] private string _fileInfoGroupName = "File Information";
     [ObservableProperty] private string _statusMessage = "Ready to patch.";
@@ -63,7 +66,12 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             RomPath = path_rom;
             GenerateDefaultOutputPath();
-            await CalculateRomChecksums();
+            FileInfoGroupName = "Calculate Checksums...";
+            var (c, m, s) = await _checksumService.CalculateChecksumsAsync(RomPath);
+            _checksumService.SetOriginalChecksums(c,m,s);
+            _patchedCrc32 = "---"; _patchedMd5 = "---"; _patchedSha1 = "---";
+            IsOriginalChecksum = true;
+            CalculateRomChecksums(c, m, s, "File Information (Original ROM)");
             UpdateStatus("ROM loaded.", "Green");
         }
     }
@@ -117,6 +125,10 @@ public partial class MainWindowViewModel : ViewModelBase
                 await _patcherService.ApplyMultiplePatchesAsync(RomPath!, SelectedPatches.ToList(), OutputPath!);
             }
 
+            FileInfoGroupName = "Calculate Checksums...";
+            var (c, m, s) = await _checksumService.CalculateChecksumsAsync(RomPath);
+            _patchedCrc32 = "---"; _patchedMd5 = "---"; _patchedSha1 = "---";
+            IsOriginalChecksum = false;
             UpdateStatus("Success! All patches applied.", "Green");
         }
         catch (Exception ex)
@@ -136,14 +148,31 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void OpenSettings() => _windowService.ShowSettingsWindow();
 
-    private async Task CalculateRomChecksums()
+    partial void OnIsOriginalChecksumChanged(bool value)
     {
-        if (string.IsNullOrEmpty(RomPath)) return;
-        
-        FileInfoGroupName = "Calculating Checksums...";
-        var (c, m, s) = await _checksumService.CalculateChecksumsAsync(RomPath);
-        Crc32 = c; Md5 = m; Sha1 = s;
-        FileInfoGroupName = "File Information";
+        if (value)
+        {
+            CalculateRomChecksums(
+                _checksumService.OriginalCrc32, 
+                _checksumService.OriginalMd5, 
+                _checksumService.OriginalSha1, 
+                "File Information (Original ROM)");
+        }
+        else
+        {
+            CalculateRomChecksums(
+                _patchedCrc32, 
+                _patchedMd5, 
+                _patchedSha1, 
+                "File Information (Patched ROM)");
+        }
+    }
+    private async Task CalculateRomChecksums(string crc, string md5, string sha1, string header)
+    {
+        Crc32 = crc; 
+        Md5 = md5; 
+        Sha1 = sha1;
+        FileInfoGroupName = header;
     }
 
     private void GenerateDefaultOutputPath()

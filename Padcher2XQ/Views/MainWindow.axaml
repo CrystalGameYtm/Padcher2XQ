@@ -8,7 +8,7 @@
         x:DataType="vm:MainWindowViewModel"
         x:CompileBindings="True"
         Title="Padcher2XQ"
-        Width="520" Height="500" CanResize="False"
+        Width="520" Height="560" CanResize="False"
         WindowStartupLocation="CenterScreen">
 
     <Design.DataContext>
@@ -63,8 +63,11 @@
                             <TextBlock Grid.Row="2" Grid.Column="0" Text="SHA-1:" FontWeight="SemiBold" Margin="0,0,10,0"/>
                             <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Sha1}" FontFamily="Consolas, Monospace"/>
                         </Grid>
+                        <CheckBox Content="Use Orginal Checksum" HorizontalAlignment="Left"/>
                     </StackPanel>
+                    
                 </Border>
+                    
                 
                 <Button Content="Apply Patch" 
                         Classes="accent"
