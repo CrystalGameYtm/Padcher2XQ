@@ -39,7 +39,6 @@ public class ChecksumService
             int bytesRead;
             uint crcValue = 0xFFFFFFFF;
 
-            // Читаємо файл за один прохід блоками
             while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
             {
                 md5.TransformBlock(buffer, 0, bytesRead, null, 0);

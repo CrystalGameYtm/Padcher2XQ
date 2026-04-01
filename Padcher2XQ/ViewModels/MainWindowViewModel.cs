@@ -55,7 +55,10 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task SelectRomFile()
     {
-        var paths = await _fileDialogService.OpenFileAsync("Select ROM File", new[] { "*.sfc", "*.smc", "*.bin", "*.iso", "*.gba", "*.nds" });
+        var paths = await _fileDialogService.OpenFileAsync("Select ROM File", new[]
+        {
+            "*.nes", "*.iso", "*.gen", "*.n64", "*.gbc", "*.md", "*.z64", "*.sfc", "*.smc", "*.bin", "*.iso", "*.gba", "*.nds"
+        });
         if (paths?.FirstOrDefault() is string path_rom)
         {
             RomPath = path_rom;
