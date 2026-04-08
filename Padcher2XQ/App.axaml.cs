@@ -10,8 +10,9 @@ using System;
 
 namespace Padcher2XQ;
 
-public partial class App : Application
+public class App : Application
 {
+
     public new static App? Current => Application.Current as App;
     public IServiceProvider? Services { get; private set; }
 
@@ -23,22 +24,22 @@ public partial class App : Application
     public override void OnFrameworkInitializationCompleted()
     {
         var services = new ServiceCollection();
-        
+        services.AddSingleton<App>(this);
+        services.AddSingleton<SettingsService>();
         services.AddSingleton<IWindowService, WindowService>();
-        services.AddSingleton(this); 
         services.AddSingleton<IFileDialogService, FileDialogService>();
         services.AddSingleton<PatcherService>();
         services.AddSingleton<ChecksumService>();
-        services.AddSingleton<MainWindowViewModel>();
+        services.AddSingleton<RetroAchievementsService>(); 
+        services.AddTransient<MainWindowViewModel>();
         services.AddTransient<SettingsViewModel>();
-        services.AddSingleton<SettingsService>();
-        Services = services.BuildServiceProvider();
+        var provider = services.BuildServiceProvider();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = new MainWindow
             {
-                DataContext = Services.GetRequiredService<MainWindowViewModel>()
+                DataContext = provider.GetRequiredService<MainWindowViewModel>()
             };
         }
 

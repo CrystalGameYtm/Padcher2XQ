@@ -2,13 +2,12 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Padcher2XQ.Services;
 using System.Threading.Tasks;
-
 namespace Padcher2XQ.ViewModels;
 
 public partial class SettingsViewModel : ViewModelBase
 {
     private readonly SettingsService _settingsService;
-    private readonly IFileDialogService _fileDialogService; // Додаємо сервіс діалогів
+    private readonly IFileDialogService _fileDialogService; 
 
     [ObservableProperty] private bool _isDarkMode;
     [ObservableProperty] private string _asarPath = string.Empty;
@@ -24,23 +23,31 @@ public partial class SettingsViewModel : ViewModelBase
         XdeltaPath = _settingsService.Config.XdeltaPath;
     }
 
-    // Команда для вибору Asar
     [RelayCommand]
     private async Task SelectAsarFile()
     {
-        var paths = await _fileDialogService.OpenFileAsync("Select Asar Executable", new[] { "*.*", "*.exe" });
-        if (paths != null && paths.Length > 0)
+        var paths = await _fileDialogService.OpenFileAsync("Select Asar Executable", ["*.*", "*.exe"]);
+        if (paths is { Length: > 0 })
         {
-            AsarPath = paths[0]; // Призначаємо шлях, і OnAsarPathChanged автоматично його збереже
+            AsarPath = paths[0]; 
         }
     }
+    public string RaUser
+    {
+        get => _settingsService.Config.RaUser;
+        set { _settingsService.Config.RaUser = value; OnPropertyChanged(); }
+    }
 
-    // Команда для вибору Xdelta3
+    public string RaApiKey
+    {
+        get => _settingsService.Config.RaApiKey;
+        set { _settingsService.Config.RaApiKey = value; OnPropertyChanged(); }
+    }
     [RelayCommand]
     private async Task SelectXdeltaFile()
     {
-        var paths = await _fileDialogService.OpenFileAsync("Select Xdelta3 Executable", new[] { "*.*", "*.exe" });
-        if (paths != null && paths.Length > 0)
+        var paths = await _fileDialogService.OpenFileAsync("Select Xdelta3 Executable", ["*.*", "*.exe"]);
+        if (paths is { Length: > 0 })
         {
             XdeltaPath = paths[0];
         }

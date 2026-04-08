@@ -15,39 +15,41 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly IFileDialogService _fileDialogService;
     private readonly PatcherService _patcherService;
     private readonly ChecksumService _checksumService;
-
+    private readonly RetroAchievementsService _raService; 
     public ObservableCollection<string> SelectedPatches { get; } = new();
-
     [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))] private string? _romPath;
     [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))] private string? _patchPath;
     [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))] private string? _outputPath;
-
     [ObservableProperty] private string? _patchPathDisplay; 
-    [ObservableProperty] private bool _ignoreChecksums;
     [ObservableProperty] private bool _isMultiPatchMode;
     
-    // ЄДИНА ЗМІННА ЧЕКБОКСА (саме вона оживить кнопку на гіфці)
-    [ObservableProperty] private bool _isOriginalChecksum = true;
+    [ObservableProperty] private string _origCrc32 = "---";
+    [ObservableProperty] private string _origMd5 = "---";
+    [ObservableProperty] private string _origSha1 = "---";
+
+    [ObservableProperty] private string _patchedCrc32 = "---";
+    [ObservableProperty] private string _patchedMd5 = "---";
+    [ObservableProperty] private string _patchedSha1 = "---";
     
-    [ObservableProperty] private string _crc32 = "---";
-    [ObservableProperty] private string _md5 = "---";
-    [ObservableProperty] private string _sha1 = "---";
-    
-    // Кеш для пропатченого файлу
-    private string _patchedCrc32 = "---";
-    private string _patchedMd5 = "---";
-    private string _patchedSha1 = "---";
-    
-    [ObservableProperty] private string _fileInfoGroupName = "File Information";
+    [ObservableProperty] private string _raStatus = "Waiting for patch...";
+    [ObservableProperty] private string _raStatusColor = "Gray";
+
     [ObservableProperty] private string _statusMessage = "Ready to patch.";
     [ObservableProperty] private string _statusMessageColor = "Gray";
 
-    public MainWindowViewModel(IWindowService windowService, IFileDialogService fileDialogService, PatcherService patcherService, ChecksumService checksumService)
+    public MainWindowViewModel(
+        IWindowService windowService, 
+        IFileDialogService fileDialogService, 
+        PatcherService patcherService, 
+        ChecksumService checksumService,
+        RetroAchievementsService raService
+        ) 
     {
         _windowService = windowService;
         _fileDialogService = fileDialogService;
         _patcherService = patcherService;
         _checksumService = checksumService;
+        _raService = raService;
     }
 
     [RelayCommand]
@@ -59,15 +61,13 @@ public partial class MainWindowViewModel : ViewModelBase
             RomPath = path_rom;
             GenerateDefaultOutputPath();
             
-            FileInfoGroupName = "Calculating Checksums...";
+            PatchedCrc32 = "---"; PatchedMd5 = "---"; PatchedSha1 = "---";
+            RaStatus = "Waiting for patch..."; RaStatusColor = "Gray";
+            
+            UpdateStatus("Calculating Original Checksums...", "DodgerBlue");
             var (c, m, s) = await _checksumService.CalculateChecksumsAsync(RomPath);
+            OrigCrc32 = c; OrigMd5 = m; OrigSha1 = s;
             
-            _checksumService.SetOriginalChecksums(c, m, s);
-            _patchedCrc32 = "---"; _patchedMd5 = "---"; _patchedSha1 = "---";
-            
-            // Завжди ставимо галочку для нового РОМу
-            IsOriginalChecksum = true;
-            UpdateDisplayFromOriginal();
             UpdateStatus("ROM loaded.", "Green");
         }
     }
@@ -102,37 +102,48 @@ public partial class MainWindowViewModel : ViewModelBase
         if (string.IsNullOrEmpty(RomPath) || string.IsNullOrEmpty(OutputPath)) return false;
         return IsMultiPatchMode ? SelectedPatches.Any() : !string.IsNullOrEmpty(PatchPath);
     }
+    
 
     [RelayCommand(CanExecute = nameof(CanApplyPatch))]
     private async Task ApplyPatch()
     {
         UpdateStatus("Applying patches...", "DodgerBlue");
+        RaStatus = "Checking..."; RaStatusColor = "Goldenrod";
+
         try
         {
-            // Передаємо стан чекбокса у патчер (щоб він знав, чи відновлювати чексуму SNES)
             if (IsMultiPatchMode)
-                await _patcherService.ApplyMultiplePatchesAsync(RomPath!, SelectedPatches.ToList(), OutputPath!, IsOriginalChecksum);
+                await _patcherService.ApplyMultiplePatchesAsync(RomPath!, SelectedPatches.ToList(), OutputPath!, true); // true = відновлювати SNES чексуму
             else
-                await _patcherService.PatchSingleFileAsync(RomPath!, PatchPath!, OutputPath!, IsOriginalChecksum);
+                await _patcherService.PatchSingleFileAsync(RomPath!, PatchPath!, OutputPath!, true);
 
-            // Рахуємо нові хеші після патчінгу
             var (c, m, s) = await _checksumService.CalculateChecksumsAsync(OutputPath!);
-            _patchedCrc32 = c; _patchedMd5 = m; _patchedSha1 = s;
+            PatchedCrc32 = c; PatchedMd5 = m; PatchedSha1 = s;
 
-            // Якщо чекбокс вимкнений - показуємо нові хеші
-            if (!IsOriginalChecksum)
-            {
-                Crc32 = _patchedCrc32;
-                Md5 = _patchedMd5;
-                Sha1 = _patchedSha1;
-                FileInfoGroupName = "File Information (Patched ROM)";
-            }
-            
             UpdateStatus("Success! Patches applied.", "Green");
+            await CheckRetroAchievementsAsync(m);
         }
         catch (Exception ex)
         {
             UpdateStatus($"Error: {ex.Message}", "Red");
+            RaStatus = "Check Failed"; RaStatusColor = "Red";
+        }
+    }
+
+    private async Task CheckRetroAchievementsAsync(string md5)
+    {
+        RaStatus = "Contacting RA Servers...";
+        var (isSupported, gameTitle) = await _raService.CheckHashSupportAsync(md5);
+
+        if (isSupported)
+        {
+            RaStatus = $"✓ Supported: {gameTitle}";
+            RaStatusColor = "LimeGreen";
+        }
+        else
+        {
+            RaStatus = "❌ Hash not found in RA Database";
+            RaStatusColor = "IndianRed";
         }
     }
 
@@ -147,39 +158,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void OpenSettings() => _windowService.ShowSettingsWindow();
 
-    // Реакція на клацання чекбокса в UI
-    partial void OnIsOriginalChecksumChanged(bool value)
-    {
-        if (value)
-        {
-            UpdateDisplayFromOriginal();
-        }
-        else
-        {
-            if (_patchedCrc32 == "---")
-            {
-                Crc32 = _checksumService.OriginalCrc32;
-                Md5 = _checksumService.OriginalMd5;
-                Sha1 = _checksumService.OriginalSha1;
-                FileInfoGroupName = "File Information (Original - Not Patched)";
-            }
-            else
-            {
-                Crc32 = _patchedCrc32;
-                Md5 = _patchedMd5;
-                Sha1 = _patchedSha1;
-                FileInfoGroupName = "File Information (Patched ROM)";
-            }
-        }
-    }
-
-    private void UpdateDisplayFromOriginal()
-    {
-        Crc32 = _checksumService.OriginalCrc32;
-        Md5 = _checksumService.OriginalMd5;
-        Sha1 = _checksumService.OriginalSha1;
-        FileInfoGroupName = "File Information (Original ROM)";
-    }
+    
 
     private void GenerateDefaultOutputPath()
     {

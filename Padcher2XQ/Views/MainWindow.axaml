@@ -6,7 +6,7 @@
         mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="500"
         x:Class="Padcher2XQ.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        x:CompileBindings="True"
+        x:CompileBindings="False"
         Title="Padcher2XQ"
         Width="520" Height="540" CanResize="False"
         WindowStartupLocation="CenterScreen">
@@ -21,7 +21,7 @@
                 
                 <TextBlock Text="ROM File" FontWeight="SemiBold"/>
                 <Grid ColumnDefinitions="*,Auto">
-                    <TextBox Grid.Column="0" Text="{Binding RomPath}" Watermark="Select a ROM to patch..." VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox Grid.Column="0" Text="{Binding RomPath}" PlaceholderText="Select a ROM to patch..." VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectRomFileCommand}" ToolTip.Tip="Browse for ROM file"/>
                 </Grid>
 
@@ -33,7 +33,7 @@
                 <Grid ColumnDefinitions="*,Auto">
                     <TextBox Grid.Column="0" 
                              Text="{Binding PatchPathDisplay}" 
-                             Watermark="Select patch file(s)..."
+                             PlaceholderText="Select patch file(s)..."
                              VerticalAlignment="Center" 
                              IsReadOnly="True" 
                              Margin="0,0,8,0"/>
@@ -42,35 +42,53 @@
 
                 <TextBlock Text="Output File" FontWeight="SemiBold" Margin="0,8,0,0"/>
                 <Grid ColumnDefinitions="*,Auto">
-                    <TextBox Grid.Column="0" Text="{Binding OutputPath}" Watermark="Save as..." VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox Grid.Column="0" Text="{Binding OutputPath}" PlaceholderText="Save as..." VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectOutputFileCommand}" ToolTip.Tip="Select output destination"/>
                 </Grid>
                 
-                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" 
+               <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" 
                         BorderThickness="1" 
                         CornerRadius="4" 
                         Padding="12" 
                         Margin="0,12,0,0">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="{Binding FileInfoGroupName}" FontWeight="Bold" Margin="0,0,0,4"/>
-                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" Margin="8,0,0,0">
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="CRC32:" FontWeight="SemiBold" Margin="0,0,10,4"/>
-                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Crc32}" FontFamily="Consolas, Monospace"/>
+                    <StackPanel Spacing="10">
+                        
+                        <Grid ColumnDefinitions="*,*">
                             
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="MD5:" FontWeight="SemiBold" Margin="0,0,10,4"/>
-                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Md5}" FontFamily="Consolas, Monospace"/>
-                            
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="SHA-1:" FontWeight="SemiBold" Margin="0,0,10,0"/>
- 
-                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Sha1}" FontFamily="Consolas, Monospace"/>
-                            
+                            <StackPanel Grid.Column="0" Spacing="4">
+                                <TextBlock Text="Original ROM" FontWeight="Bold" Foreground="Gray"/>
+                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="CRC32:" FontWeight="SemiBold" Margin="0,0,5,0"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding OrigCrc32}" FontFamily="Consolas, Monospace"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="MD5:" FontWeight="SemiBold" Margin="0,0,5,0"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding OrigMd5}" FontFamily="Consolas, Monospace"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="SHA-1:" FontWeight="SemiBold" Margin="0,0,5,0"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding OrigSha1}" FontFamily="Consolas, Monospace"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Spacing="4">
+                                <TextBlock Text="Patched ROM" FontWeight="Bold" Foreground="DodgerBlue"/>
+                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="CRC32:" FontWeight="SemiBold" Margin="0,0,5,0"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding PatchedCrc32}" FontFamily="Consolas, Monospace"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="MD5:" FontWeight="SemiBold" Margin="0,0,5,0"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding PatchedMd5}" FontFamily="Consolas, Monospace"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="SHA-1:" FontWeight="SemiBold" Margin="0,0,5,0"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding PatchedSha1}" FontFamily="Consolas, Monospace"/>
+                                </Grid>
+                            </StackPanel>
                         </Grid>
-                            <CheckBox Content="Use Original Checksum (W.I.P)" 
-                                      IsChecked="{Binding IsOriginalChecksum}" 
-                                      HorizontalAlignment="Left"/>
-                       
+
+                        <Separator Background="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="0,5"/>
+
+                        <DockPanel>
+                            <TextBlock Text="RetroAchievements:" FontWeight="Bold" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <TextBlock Text="{Binding RaStatus}" Foreground="{Binding RaStatusColor}" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                        </DockPanel>
+
                     </StackPanel>
-</Border>
+                </Border>
            
                 
 <Button Content="Apply Patch" 

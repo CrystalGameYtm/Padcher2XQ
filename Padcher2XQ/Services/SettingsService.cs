@@ -10,7 +10,8 @@ public class SettingsService
 {
     private readonly string _settingsFilePath;
     public AppConfig Config { get; private set; }
-
+    public string RaUser { get; set; } = "";
+    public string RaApiKey { get; set; } = "";
     public SettingsService()
     {
         _settingsFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
