@@ -65,7 +65,7 @@
                             <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Sha1}" FontFamily="Consolas, Monospace"/>
                             
                         </Grid>
-                            <CheckBox Content="Use Original Checksum" 
+                            <CheckBox Content="Use Original Checksum (W.I.P)" 
                                       IsChecked="{Binding IsOriginalChecksum}" 
                                       HorizontalAlignment="Left"/>
                        

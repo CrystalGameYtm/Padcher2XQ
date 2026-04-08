@@ -18,24 +18,22 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public ObservableCollection<string> SelectedPatches { get; } = new();
 
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))]
-    private string? _romPath;
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))]
-    private string? _patchPath;
-    [ObservableProperty] 
-    [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))]
-    private string? _outputPath;
+    [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))] private string? _romPath;
+    [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))] private string? _patchPath;
+    [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))] private string? _outputPath;
 
     [ObservableProperty] private string? _patchPathDisplay; 
     [ObservableProperty] private bool _ignoreChecksums;
     [ObservableProperty] private bool _isMultiPatchMode;
+    
+    // ЄДИНА ЗМІННА ЧЕКБОКСА (саме вона оживить кнопку на гіфці)
     [ObservableProperty] private bool _isOriginalChecksum = true;
-    [ObservableProperty] private bool _hasPatchedFile;
+    
     [ObservableProperty] private string _crc32 = "---";
     [ObservableProperty] private string _md5 = "---";
     [ObservableProperty] private string _sha1 = "---";
+    
+    // Кеш для пропатченого файлу
     private string _patchedCrc32 = "---";
     private string _patchedMd5 = "---";
     private string _patchedSha1 = "---";
@@ -44,11 +42,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private string _statusMessage = "Ready to patch.";
     [ObservableProperty] private string _statusMessageColor = "Gray";
 
-    public MainWindowViewModel(
-        IWindowService windowService, 
-        IFileDialogService fileDialogService,
-        PatcherService patcherService,
-        ChecksumService checksumService)
+    public MainWindowViewModel(IWindowService windowService, IFileDialogService fileDialogService, PatcherService patcherService, ChecksumService checksumService)
     {
         _windowService = windowService;
         _fileDialogService = fileDialogService;
@@ -59,19 +53,21 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task SelectRomFile()
     {
-        var paths = await _fileDialogService.OpenFileAsync("Select ROM File", new[]
-        {
-            "*.nes", "*.iso", "*.gen", "*.n64", "*.gbc", "*.md", "*.z64", "*.sfc", "*.smc", "*.bin", "*.iso", "*.gba", "*.nds"
-        });
+        var paths = await _fileDialogService.OpenFileAsync("Select ROM File", new[] { "*.nes", "*.iso", "*.gen", "*.n64", "*.gbc", "*.md", "*.z64", "*.sfc", "*.smc", "*.bin", "*.gba", "*.nds" });
         if (paths?.FirstOrDefault() is string path_rom)
         {
             RomPath = path_rom;
             GenerateDefaultOutputPath();
-            FileInfoGroupName = "Calculate Checksums...";
+            
+            FileInfoGroupName = "Calculating Checksums...";
             var (c, m, s) = await _checksumService.CalculateChecksumsAsync(RomPath);
-            _checksumService.SetOriginalChecksums(c,m,s);
+            
+            _checksumService.SetOriginalChecksums(c, m, s);
             _patchedCrc32 = "---"; _patchedMd5 = "---"; _patchedSha1 = "---";
-            CalculateRomChecksums(c, m, s, "File Information (Original ROM)");
+            
+            // Завжди ставимо галочку для нового РОМу
+            IsOriginalChecksum = true;
+            UpdateDisplayFromOriginal();
             UpdateStatus("ROM loaded.", "Green");
         }
     }
@@ -79,14 +75,9 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task SelectPatchFile()
     {
-        var paths = await _fileDialogService.OpenFileAsync(
-            IsMultiPatchMode ? "Select Patches" : "Select Patch", new[] { "*.ips", "*.bps", "*.asm", "*.xdelta", "*.ups" }, IsMultiPatchMode );
-            if (paths?.FirstOrDefault() is string path_patch)
-            {
-                PatchPath = path_patch; 
-            }
+        var paths = await _fileDialogService.OpenFileAsync(IsMultiPatchMode ? "Select Patches" : "Select Patch", new[] { "*.ips", "*.bps", "*.asm", "*.xdelta", "*.ups" }, IsMultiPatchMode );
+        if (paths?.FirstOrDefault() is string path_patch) PatchPath = path_patch; 
       
-
         if (paths != null && paths.Length > 0)
         {
             SelectedPatches.Clear();
@@ -96,40 +87,48 @@ public partial class MainWindowViewModel : ViewModelBase
             GenerateDefaultOutputPath();
             ApplyPatchCommand.NotifyCanExecuteChanged();
         }
-    }
+        }
     
     [RelayCommand]
     private async Task SelectOutputFile()
     {
         string ext = string.IsNullOrEmpty(RomPath) ? "sfc" : Path.GetExtension(RomPath).TrimStart('.');
         var path = await _fileDialogService.SaveFileAsync("Save Patched ROM", "patched_rom", ext);
-        
         if (path != null) OutputPath = path;
     }
     
-    private bool CanApplyPatch() => !string.IsNullOrEmpty(RomPath) && SelectedPatches.Any() && !string.IsNullOrEmpty(OutputPath);
+    private bool CanApplyPatch() 
+    {
+        if (string.IsNullOrEmpty(RomPath) || string.IsNullOrEmpty(OutputPath)) return false;
+        return IsMultiPatchMode ? SelectedPatches.Any() : !string.IsNullOrEmpty(PatchPath);
+    }
 
     [RelayCommand(CanExecute = nameof(CanApplyPatch))]
     private async Task ApplyPatch()
     {
         UpdateStatus("Applying patches...", "DodgerBlue");
-
         try
         {
-            if (SelectedPatches.Count == 1)
-            {
-                await _patcherService.PatchSingleFileAsync(RomPath!, SelectedPatches[0], OutputPath!);
-            }
+            // Передаємо стан чекбокса у патчер (щоб він знав, чи відновлювати чексуму SNES)
+            if (IsMultiPatchMode)
+                await _patcherService.ApplyMultiplePatchesAsync(RomPath!, SelectedPatches.ToList(), OutputPath!, IsOriginalChecksum);
             else
-            {
-                await _patcherService.ApplyMultiplePatchesAsync(RomPath!, SelectedPatches.ToList(), OutputPath!);
-            }
+                await _patcherService.PatchSingleFileAsync(RomPath!, PatchPath!, OutputPath!, IsOriginalChecksum);
 
-            FileInfoGroupName = "Calculate Checksums...";
-            var (c, m, s) = await _checksumService.CalculateChecksumsAsync(RomPath);
-            _patchedCrc32 = "---"; _patchedMd5 = "---"; _patchedSha1 = "---";
+            // Рахуємо нові хеші після патчінгу
+            var (c, m, s) = await _checksumService.CalculateChecksumsAsync(OutputPath!);
+            _patchedCrc32 = c; _patchedMd5 = m; _patchedSha1 = s;
+
+            // Якщо чекбокс вимкнений - показуємо нові хеші
+            if (!IsOriginalChecksum)
+            {
+                Crc32 = _patchedCrc32;
+                Md5 = _patchedMd5;
+                Sha1 = _patchedSha1;
+                FileInfoGroupName = "File Information (Patched ROM)";
+            }
             
-            UpdateStatus("Success! All patches applied.", "Green");
+            UpdateStatus("Success! Patches applied.", "Green");
         }
         catch (Exception ex)
         {
@@ -148,41 +147,47 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void OpenSettings() => _windowService.ShowSettingsWindow();
 
+    // Реакція на клацання чекбокса в UI
     partial void OnIsOriginalChecksumChanged(bool value)
     {
         if (value)
         {
-            CalculateRomChecksums(
-                _checksumService.OriginalCrc32, 
-                _checksumService.OriginalMd5, 
-                _checksumService.OriginalSha1, 
-                "File Information (Original ROM)");
+            UpdateDisplayFromOriginal();
         }
         else
         {
-            CalculateRomChecksums(
-                _patchedCrc32, 
-                _patchedMd5, 
-                _patchedSha1, 
-                "File Information (Patched ROM)");
+            if (_patchedCrc32 == "---")
+            {
+                Crc32 = _checksumService.OriginalCrc32;
+                Md5 = _checksumService.OriginalMd5;
+                Sha1 = _checksumService.OriginalSha1;
+                FileInfoGroupName = "File Information (Original - Not Patched)";
+            }
+            else
+            {
+                Crc32 = _patchedCrc32;
+                Md5 = _patchedMd5;
+                Sha1 = _patchedSha1;
+                FileInfoGroupName = "File Information (Patched ROM)";
+            }
         }
     }
-    private async Task CalculateRomChecksums(string crc, string md5, string sha1, string header)
+
+    private void UpdateDisplayFromOriginal()
     {
-        Crc32 = crc; 
-        Md5 = md5; 
-        Sha1 = sha1;
-        FileInfoGroupName = header;
+        Crc32 = _checksumService.OriginalCrc32;
+        Md5 = _checksumService.OriginalMd5;
+        Sha1 = _checksumService.OriginalSha1;
+        FileInfoGroupName = "File Information (Original ROM)";
     }
 
     private void GenerateDefaultOutputPath()
     {
-        if (string.IsNullOrEmpty(RomPath) || SelectedPatches.Count == 0) return;
-        
+        if (string.IsNullOrEmpty(RomPath)) return;
         string ext = Path.GetExtension(RomPath);
         var name = Path.GetFileNameWithoutExtension(PatchPath);
+        if (string.IsNullOrEmpty(name)) name = Path.GetFileNameWithoutExtension(RomPath) + "_patched";
         string dir = Path.GetDirectoryName(RomPath) ?? string.Empty;
-        
         OutputPath = Path.Combine(dir, $"{name}{ext}");
     }
 
