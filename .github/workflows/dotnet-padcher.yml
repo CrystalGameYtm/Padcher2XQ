@@ -124,6 +124,7 @@ jobs:
         with:
           tag_name: ${{ env.TAG_NAME }}
           name: ${{ env.RELEASE_NAME }}
+          target_commitish: ${{ github.sha }}
           prerelease: ${{ env.IS_PRERELEASE == 'true' }}
           files: |
             Padcher2XQ-Windows.zip
