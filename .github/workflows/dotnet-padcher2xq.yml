@@ -106,7 +106,6 @@ jobs:
           files: |
             Padcher2XQ-Windows.zip
             Padcher2XQ-Linux.tar.gz
-          generate_release_notes: truename: Padcher CI/CD
 
 env:
   APP_VERSION: "2.0" 
