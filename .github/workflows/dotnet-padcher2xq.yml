@@ -5,12 +5,11 @@ env:
 
 on:
   push:
-    # ТЕПЕР МИ СЛУХАЄМО ДВІ ГІЛКИ
-    branches: [ "main", "canary" ]
+    branches: [ "stable", "canary" ]
     tags:
       - 'v*'
   pull_request:
-    branches: [ "main", "canary" ]
+    branches: [ "stable", "canary" ]
 
 jobs:
   build_windows:
@@ -55,7 +54,6 @@ jobs:
 
   publish_release:
     needs: [build_windows, build_linux]
-    # Запускаємо публікацію ТІЛЬКИ якщо це пуш у canary АБО створення тегу
     if: github.event_name == 'push' && (github.ref == 'refs/heads/canary' || startsWith(github.ref, 'refs/tags/v'))
     runs-on: ubuntu-latest
     permissions:
@@ -87,12 +85,12 @@ jobs:
         id: metadata
         run: |
           if [[ "${{ github.ref }}" == refs/heads/canary ]]; then
-            # Логіка для гілки CANARY
+
             echo "TAG_NAME=${{ env.APP_VERSION }}-canary-${{ github.run_number }}" >> $GITHUB_ENV
-            echo "RELEASE_NAME=Canary Build (${{ env.APP_VERSION }}.${{ github.run_number }})" >> $GITHUB_ENV
+            echo "RELEASE_NAME=Snapshot (${{ env.APP_VERSION }}.${{ github.run_number }})" >> $GITHUB_ENV
             echo "IS_PRERELEASE=true" >> $GITHUB_ENV
+            
           elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            # Логіка для ТЕГУ (Стабільний реліз)
             echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
             echo "RELEASE_NAME=Release ${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
             echo "IS_PRERELEASE=false" >> $GITHUB_ENV
