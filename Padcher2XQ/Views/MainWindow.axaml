@@ -9,13 +9,14 @@
         x:CompileBindings="False"
         Title="Padcher2XQ"
         Width="900" Height="540" CanResize="False"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        DragDrop.AllowDrop="True">
 
     <Design.DataContext>
         <vm:MainWindowViewModel/>
     </Design.DataContext>
     
-    <Grid>
+    <Grid Background="Transparent">
         <DockPanel Margin="16">
             <StackPanel Spacing="10">
                 
@@ -31,12 +32,7 @@
                 </DockPanel>
                 
                 <Grid ColumnDefinitions="*,Auto">
-                    <TextBox Grid.Column="0" 
-                             Text="{Binding PatchPathDisplay}" 
-                             PlaceholderText="Select patch file(s)..."
-                             VerticalAlignment="Center" 
-                             IsReadOnly="True" 
-                             Margin="0,0,8,0"/>
+                    <TextBox Grid.Column="0" Text="{Binding PatchPathDisplay}" PlaceholderText="Select a patch file..." Margin="0,0,8,0" IsReadOnly="True" Focusable="False"/>
                     <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectPatchFileCommand}" ToolTip.Tip="Browse for patch file(s)"/>
                 </Grid>
 

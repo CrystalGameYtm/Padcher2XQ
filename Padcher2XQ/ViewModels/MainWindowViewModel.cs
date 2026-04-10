@@ -103,7 +103,46 @@ public partial class MainWindowViewModel : ViewModelBase
         return IsMultiPatchMode ? SelectedPatches.Any() : !string.IsNullOrEmpty(PatchPath);
     }
     
+    public async void HandleDroppedFiles(string[] files)
+    {
+        var romExtensions = new[] { ".nes", ".iso", ".gen", ".n64", ".gbc", ".md", ".z64", ".sfc", ".smc", ".bin", ".gba", ".nds" };
+        var patchExtensions = new[] { ".ips", ".bps", ".ups", ".xdelta", ".asm" };
 
+        foreach (var file in files)
+        {
+            var ext = Path.GetExtension(file).ToLower();
+
+            if (romExtensions.Contains(ext))
+            {
+                RomPath = file;
+                GenerateDefaultOutputPath();
+                PatchedCrc32 = "---"; PatchedMd5 = "---"; PatchedSha1 = "---";
+                RaStatus = "Waiting for patch..."; RaStatusColor = "Gray";
+                
+                UpdateStatus("Calculating Original Checksums...", "DodgerBlue");
+                
+                var (c, m, s) = await _checksumService.CalculateChecksumsAsync(RomPath);
+                OrigCrc32 = c; OrigMd5 = m; OrigSha1 = s;
+                
+                UpdateStatus("ROM loaded via Drag&Drop.", "Green");
+            }
+            else if (patchExtensions.Contains(ext))
+            {
+                if (IsMultiPatchMode)
+                {
+                    if (!SelectedPatches.Contains(file))
+                        SelectedPatches.Add(file);
+                    
+                    PatchPathDisplay = $"{SelectedPatches.Count} patches selected";
+                }
+                else
+                {
+                    PatchPath = file;
+                    PatchPathDisplay = file; 
+                }
+            }
+        }
+    }
     [RelayCommand(CanExecute = nameof(CanApplyPatch))]
     private async Task ApplyPatch()
     {
