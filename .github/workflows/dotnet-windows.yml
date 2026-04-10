@@ -91,7 +91,7 @@ jobs:
       - name: Tar Linux Release
         run: tar -czvf Padcher2XQ-Linux.tar.gz -C ./release/linux .
 
-      - name: Generate Snapshot Version (For Master/Main)
+      - name: Generate Stable Version (For Master/Main)
         if: ${{ startsWith(github.ref, 'refs/heads/') }}
         run: |
           YEAR=$(date +'%y')
@@ -124,7 +124,7 @@ jobs:
           tag_name: ${{ env.TAG_NAME }}
           name: ${{ env.RELEASE_NAME }}
           target_commitish: ${{ github.sha }}
-          prerelease: ${{ env.IS_PRERELEASE == 'true' }}
+          prerelease: ${{ env.IS_PRERELEASE == 'false' }}
           files: |
             Padcher2XQ-Windows.zip
             Padcher2XQ-Linux.tar.gz
