@@ -3,25 +3,26 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:Padcher2XQ.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="480"
+        mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="500"
         x:Class="Padcher2XQ.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        x:CompileBindings="True"
+        x:CompileBindings="False"
         Title="Padcher2XQ"
-        Width="520" Height="500" CanResize="False"
-        WindowStartupLocation="CenterScreen">
+        Width="900" Height="540" CanResize="False"
+        WindowStartupLocation="CenterScreen"
+        DragDrop.AllowDrop="True">
 
     <Design.DataContext>
         <vm:MainWindowViewModel/>
     </Design.DataContext>
     
-    <Grid>
+    <Grid Background="Transparent">
         <DockPanel Margin="16">
             <StackPanel Spacing="10">
                 
                 <TextBlock Text="ROM File" FontWeight="SemiBold"/>
                 <Grid ColumnDefinitions="*,Auto">
-                    <TextBox Grid.Column="0" Text="{Binding RomPath}" Watermark="Select a ROM to patch..." VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox Grid.Column="0" Text="{Binding RomPath}" PlaceholderText="Select a ROM to patch..." VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectRomFileCommand}" ToolTip.Tip="Browse for ROM file"/>
                 </Grid>
 
@@ -31,69 +32,89 @@
                 </DockPanel>
                 
                 <Grid ColumnDefinitions="*,Auto">
-                    <TextBox Grid.Column="0" 
-                             Text="{Binding PatchPathDisplay}" 
-                             Watermark="Select patch file(s)..."
-                             VerticalAlignment="Center" 
-                             IsReadOnly="True" 
-                             Margin="0,0,8,0"/>
+                    <TextBox Grid.Column="0" Text="{Binding PatchPathDisplay}" PlaceholderText="Select a patch file..." Margin="0,0,8,0" IsReadOnly="True" Focusable="False"/>
                     <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectPatchFileCommand}" ToolTip.Tip="Browse for patch file(s)"/>
                 </Grid>
 
-                <TextBlock Text="Output File" FontWeight="SemiBold" IsEnabled="{Binding !IsMultiPatchMode}" Margin="0,8,0,0"/>
+                <TextBlock Text="Output File" FontWeight="SemiBold" Margin="0,8,0,0"/>
                 <Grid ColumnDefinitions="*,Auto">
-                    <TextBox Grid.Column="0" Text="{Binding OutputPath}" Watermark="Save as..." VerticalAlignment="Center" IsEnabled="{Binding !IsMultiPatchMode}" Margin="0,0,8,0"/>
-                    <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectOutputFileCommand}" IsEnabled="{Binding !IsMultiPatchMode}" ToolTip.Tip="Select output destination"/>
+                    <TextBox Grid.Column="0" Text="{Binding OutputPath}" PlaceholderText="Save as..." VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectOutputFileCommand}" ToolTip.Tip="Select output destination"/>
                 </Grid>
                 
-                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" 
+               <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" 
                         BorderThickness="1" 
                         CornerRadius="4" 
                         Padding="12" 
                         Margin="0,12,0,0">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="{Binding FileInfoGroupName}" FontWeight="Bold" Margin="0,0,0,4"/>
-                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" Margin="8,0,0,0">
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="CRC32:" FontWeight="SemiBold" Margin="0,0,10,4"/>
-                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Crc32}" FontFamily="Consolas, Monospace"/>
+                    <StackPanel Spacing="10">
+                        
+                        <Grid ColumnDefinitions="*,*">
                             
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="MD5:" FontWeight="SemiBold" Margin="0,0,10,4"/>
-                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Md5}" FontFamily="Consolas, Monospace"/>
-                            
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="SHA-1:" FontWeight="SemiBold" Margin="0,0,10,0"/>
-                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Sha1}" FontFamily="Consolas, Monospace"/>
+                            <StackPanel Grid.Column="0" Spacing="4">
+                                <TextBlock Text="Original ROM" FontWeight="Bold" Foreground="Gray"/>
+                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="CRC32:" FontWeight="SemiBold" Margin="0,0,5,0"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding OrigCrc32}" FontFamily="Consolas, Monospace"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="MD5:" FontWeight="SemiBold" Margin="0,0,5,0"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding OrigMd5}" FontFamily="Consolas, Monospace"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="SHA-1:" FontWeight="SemiBold" Margin="0,0,5,0"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding OrigSha1}" FontFamily="Consolas, Monospace"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Spacing="4">
+                                <TextBlock Text="Patched ROM" FontWeight="Bold" Foreground="DodgerBlue"/>
+                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="CRC32:" FontWeight="SemiBold" Margin="0,0,5,0"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding PatchedCrc32}" FontFamily="Consolas, Monospace"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="MD5:" FontWeight="SemiBold" Margin="0,0,5,0"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding PatchedMd5}" FontFamily="Consolas, Monospace"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="SHA-1:" FontWeight="SemiBold" Margin="0,0,5,0"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding PatchedSha1}" FontFamily="Consolas, Monospace"/>
+                                </Grid>
+                            </StackPanel>
                         </Grid>
+
+                        <Separator Background="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="0,5"/>
+
+                        <DockPanel>
+                            <TextBlock Text="RetroAchievements:" FontWeight="Bold" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <TextBlock Text="{Binding RaStatus}" Foreground="{Binding RaStatusColor}" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                        </DockPanel>
+
                     </StackPanel>
                 </Border>
+           
                 
-                <Button Content="Apply Patch" 
-                        Classes="accent"
-                        FontWeight="Bold" 
-                        Height="45" 
-                        Command="{Binding ApplyPatchCommand}" 
-                        HorizontalAlignment="Stretch" 
-                        HorizontalContentAlignment="Center"
-                        VerticalContentAlignment="Center"
-                        Margin="0,16,0,0"/>
+<Button Content="Apply Patch" 
+        Classes="accent"
+        FontWeight="Bold" 
+        Height="45" 
+        Command="{Binding ApplyPatchCommand}" 
+        HorizontalAlignment="Stretch" 
+        HorizontalContentAlignment="Center"
+        VerticalContentAlignment="Center"
+        Margin="0,16,0,0"/>
 
-                <TextBlock Text="{Binding StatusMessage}" 
-                           Foreground="{Binding StatusMessageColor}"
-                           FontWeight="SemiBold"
-                           HorizontalAlignment="Center"
-                           TextWrapping="Wrap"
-                           Margin="0,12,0,0"/>
-            </StackPanel>
-        </DockPanel>
+<TextBlock Text="{Binding StatusMessage}" 
+           Foreground="{Binding StatusMessageColor}"
+           FontWeight="SemiBold"
+           HorizontalAlignment="Center"
+           TextWrapping="Wrap"
+           Margin="0,12,0,0"/>
+</StackPanel>
+</DockPanel>
 
-        <Button Command="{Binding OpenSettingsCommand}"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Top"
-                Margin="0,8, 8,0"
-                Width="40" Height="32"
-                CornerRadius="16"
-                Background="Transparent"
-                ToolTip.Tip="Open Settings">
-            <TextBlock Text="⚙" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-        </Button>
-    </Grid>
+<Button Command="{Binding OpenSettingsCommand}"
+        HorizontalAlignment="Right"
+        VerticalAlignment="Top"
+        Margin="0,8,8,0"
+        Width="40" Height="32"
+        CornerRadius="16"
+        Background="Transparent"
+        ToolTip.Tip="Open Settings">
+    <TextBlock Text="⚙" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+</Button>
+</Grid>
 </Window>

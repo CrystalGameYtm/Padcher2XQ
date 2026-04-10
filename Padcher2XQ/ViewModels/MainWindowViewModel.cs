@@ -15,52 +15,59 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly IFileDialogService _fileDialogService;
     private readonly PatcherService _patcherService;
     private readonly ChecksumService _checksumService;
-
+    private readonly RetroAchievementsService _raService; 
     public ObservableCollection<string> SelectedPatches { get; } = new();
-
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))]
-    private string? _romPath;
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))]
-    private string? _patchPath;
-    [ObservableProperty] 
-    [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))]
-    private string? _outputPath;
-
+    [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))] private string? _romPath;
+    [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))] private string? _patchPath;
+    [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))] private string? _outputPath;
     [ObservableProperty] private string? _patchPathDisplay; 
-    [ObservableProperty] private bool _ignoreChecksums;
     [ObservableProperty] private bool _isMultiPatchMode;
     
-    [ObservableProperty] private string _crc32 = "---";
-    [ObservableProperty] private string _md5 = "---";
-    [ObservableProperty] private string _sha1 = "---";
+    [ObservableProperty] private string _origCrc32 = "---";
+    [ObservableProperty] private string _origMd5 = "---";
+    [ObservableProperty] private string _origSha1 = "---";
+
+    [ObservableProperty] private string _patchedCrc32 = "---";
+    [ObservableProperty] private string _patchedMd5 = "---";
+    [ObservableProperty] private string _patchedSha1 = "---";
     
-    [ObservableProperty] private string _fileInfoGroupName = "File Information";
+    [ObservableProperty] private string _raStatus = "Waiting for patch...";
+    [ObservableProperty] private string _raStatusColor = "Gray";
+
     [ObservableProperty] private string _statusMessage = "Ready to patch.";
     [ObservableProperty] private string _statusMessageColor = "Gray";
 
     public MainWindowViewModel(
         IWindowService windowService, 
-        IFileDialogService fileDialogService,
-        PatcherService patcherService,
-        ChecksumService checksumService)
+        IFileDialogService fileDialogService, 
+        PatcherService patcherService, 
+        ChecksumService checksumService,
+        RetroAchievementsService raService
+        ) 
     {
         _windowService = windowService;
         _fileDialogService = fileDialogService;
         _patcherService = patcherService;
         _checksumService = checksumService;
+        _raService = raService;
     }
 
     [RelayCommand]
     private async Task SelectRomFile()
     {
-        var paths = await _fileDialogService.OpenFileAsync("Select ROM File", new[] { "*.sfc", "*.smc", "*.bin", "*.iso", "*.gba", "*.nds" });
+        var paths = await _fileDialogService.OpenFileAsync("Select ROM File", new[] { "*.nes", "*.iso", "*.gen", "*.n64", "*.gbc", "*.md", "*.z64", "*.sfc", "*.smc", "*.bin", "*.gba", "*.nds" });
         if (paths?.FirstOrDefault() is string path_rom)
         {
             RomPath = path_rom;
             GenerateDefaultOutputPath();
-            await CalculateRomChecksums();
+            
+            PatchedCrc32 = "---"; PatchedMd5 = "---"; PatchedSha1 = "---";
+            RaStatus = "Waiting for patch..."; RaStatusColor = "Gray";
+            
+            UpdateStatus("Calculating Original Checksums...", "DodgerBlue");
+            var (c, m, s) = await _checksumService.CalculateChecksumsAsync(RomPath);
+            OrigCrc32 = c; OrigMd5 = m; OrigSha1 = s;
+            
             UpdateStatus("ROM loaded.", "Green");
         }
     }
@@ -68,14 +75,9 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task SelectPatchFile()
     {
-        var paths = await _fileDialogService.OpenFileAsync(
-            IsMultiPatchMode ? "Select Patches" : "Select Patch", new[] { "*.ips", "*.bps", "*.asm", "*.xdelta", "*.ups" }, IsMultiPatchMode );
-            if (paths?.FirstOrDefault() is string path_patch)
-            {
-                PatchPath = path_patch; 
-            }
+        var paths = await _fileDialogService.OpenFileAsync(IsMultiPatchMode ? "Select Patches" : "Select Patch", new[] { "*.ips", "*.bps", "*.asm", "*.xdelta", "*.ups" }, IsMultiPatchMode );
+        if (paths?.FirstOrDefault() is string path_patch) PatchPath = path_patch; 
       
-
         if (paths != null && paths.Length > 0)
         {
             SelectedPatches.Clear();
@@ -85,40 +87,102 @@ public partial class MainWindowViewModel : ViewModelBase
             GenerateDefaultOutputPath();
             ApplyPatchCommand.NotifyCanExecuteChanged();
         }
-    }
+        }
     
     [RelayCommand]
     private async Task SelectOutputFile()
     {
         string ext = string.IsNullOrEmpty(RomPath) ? "sfc" : Path.GetExtension(RomPath).TrimStart('.');
         var path = await _fileDialogService.SaveFileAsync("Save Patched ROM", "patched_rom", ext);
-        
         if (path != null) OutputPath = path;
     }
     
-    private bool CanApplyPatch() => !string.IsNullOrEmpty(RomPath) && SelectedPatches.Any() && !string.IsNullOrEmpty(OutputPath);
+    private bool CanApplyPatch() 
+    {
+        if (string.IsNullOrEmpty(RomPath) || string.IsNullOrEmpty(OutputPath)) return false;
+        return IsMultiPatchMode ? SelectedPatches.Any() : !string.IsNullOrEmpty(PatchPath);
+    }
+    
+    public async void HandleDroppedFiles(string[] files)
+    {
+        var romExtensions = new[] { ".nes", ".iso", ".gen", ".n64", ".gbc", ".md", ".z64", ".sfc", ".smc", ".bin", ".gba", ".nds" };
+        var patchExtensions = new[] { ".ips", ".bps", ".ups", ".xdelta", ".asm" };
 
+        foreach (var file in files)
+        {
+            var ext = Path.GetExtension(file).ToLower();
+
+            if (romExtensions.Contains(ext))
+            {
+                RomPath = file;
+                GenerateDefaultOutputPath();
+                PatchedCrc32 = "---"; PatchedMd5 = "---"; PatchedSha1 = "---";
+                RaStatus = "Waiting for patch..."; RaStatusColor = "Gray";
+                
+                UpdateStatus("Calculating Original Checksums...", "DodgerBlue");
+                
+                var (c, m, s) = await _checksumService.CalculateChecksumsAsync(RomPath);
+                OrigCrc32 = c; OrigMd5 = m; OrigSha1 = s;
+                
+                UpdateStatus("ROM loaded via Drag&Drop.", "Green");
+            }
+            else if (patchExtensions.Contains(ext))
+            {
+                if (IsMultiPatchMode)
+                {
+                    if (!SelectedPatches.Contains(file))
+                        SelectedPatches.Add(file);
+                    
+                    PatchPathDisplay = $"{SelectedPatches.Count} patches selected";
+                }
+                else
+                {
+                    PatchPath = file;
+                    PatchPathDisplay = file; 
+                }
+            }
+        }
+    }
     [RelayCommand(CanExecute = nameof(CanApplyPatch))]
     private async Task ApplyPatch()
     {
         UpdateStatus("Applying patches...", "DodgerBlue");
+        RaStatus = "Checking..."; RaStatusColor = "Goldenrod";
 
         try
         {
-            if (SelectedPatches.Count == 1)
-            {
-                await _patcherService.PatchSingleFileAsync(RomPath!, SelectedPatches[0], OutputPath!);
-            }
+            if (IsMultiPatchMode)
+                await _patcherService.ApplyMultiplePatchesAsync(RomPath!, SelectedPatches.ToList(), OutputPath!, true); // true = відновлювати SNES чексуму
             else
-            {
-                await _patcherService.ApplyMultiplePatchesAsync(RomPath!, SelectedPatches.ToList(), OutputPath!);
-            }
+                await _patcherService.PatchSingleFileAsync(RomPath!, PatchPath!, OutputPath!, true);
 
-            UpdateStatus("Success! All patches applied.", "Green");
+            var (c, m, s) = await _checksumService.CalculateChecksumsAsync(OutputPath!);
+            PatchedCrc32 = c; PatchedMd5 = m; PatchedSha1 = s;
+
+            UpdateStatus("Success! Patches applied.", "Green");
+            await CheckRetroAchievementsAsync(m);
         }
         catch (Exception ex)
         {
             UpdateStatus($"Error: {ex.Message}", "Red");
+            RaStatus = "Check Failed"; RaStatusColor = "Red";
+        }
+    }
+
+    private async Task CheckRetroAchievementsAsync(string md5)
+    {
+        RaStatus = "Contacting RA Servers...";
+        var (isSupported, gameTitle) = await _raService.CheckHashSupportAsync(md5);
+
+        if (isSupported)
+        {
+            RaStatus = $"✓ Supported: {gameTitle}";
+            RaStatusColor = "LimeGreen";
+        }
+        else
+        {
+            RaStatus = "❌ Hash not found in RA Database";
+            RaStatusColor = "IndianRed";
         }
     }
 
@@ -133,24 +197,15 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void OpenSettings() => _windowService.ShowSettingsWindow();
 
-    private async Task CalculateRomChecksums()
-    {
-        if (string.IsNullOrEmpty(RomPath)) return;
-        
-        FileInfoGroupName = "Calculating Checksums...";
-        var (c, m, s) = await _checksumService.CalculateChecksumsAsync(RomPath);
-        Crc32 = c; Md5 = m; Sha1 = s;
-        FileInfoGroupName = "File Information";
-    }
+    
 
     private void GenerateDefaultOutputPath()
     {
-        if (string.IsNullOrEmpty(RomPath) || SelectedPatches.Count == 0) return;
-        
+        if (string.IsNullOrEmpty(RomPath)) return;
         string ext = Path.GetExtension(RomPath);
         var name = Path.GetFileNameWithoutExtension(PatchPath);
+        if (string.IsNullOrEmpty(name)) name = Path.GetFileNameWithoutExtension(RomPath) + "_patched";
         string dir = Path.GetDirectoryName(RomPath) ?? string.Empty;
-        
         OutputPath = Path.Combine(dir, $"{name}{ext}");
     }
 
