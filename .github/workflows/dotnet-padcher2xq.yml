@@ -5,11 +5,12 @@ env:
 
 on:
   push:
-    branches: [ "main" ]
+    # ТЕПЕР МИ СЛУХАЄМО ДВІ ГІЛКИ
+    branches: [ "main", "canary" ]
     tags:
       - 'v*'
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "canary" ]
 
 jobs:
   build_windows:
@@ -54,8 +55,8 @@ jobs:
 
   publish_release:
     needs: [build_windows, build_linux]
-    # Запускаємо реліз тільки на main або при пуші тегів
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    # Запускаємо публікацію ТІЛЬКИ якщо це пуш у canary АБО створення тегу
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/canary' || startsWith(github.ref, 'refs/tags/v'))
     runs-on: ubuntu-latest
     permissions:
       contents: write 
@@ -83,17 +84,18 @@ jobs:
         run: tar -czvf Padcher2XQ-Linux.tar.gz -C ./release/linux .
 
       - name: Set Release Metadata
+        id: metadata
         run: |
-          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            # Це офіційний реліз за тегом
-            echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-            echo "RELEASE_NAME=Release ${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-            echo "IS_PRERELEASE=false" >> $GITHUB_ENV
-          else
-            # Це автоматичний білд з гілки main (Canary/Nightly)
+          if [[ "${{ github.ref }}" == refs/heads/canary ]]; then
+            # Логіка для гілки CANARY
             echo "TAG_NAME=${{ env.APP_VERSION }}-canary-${{ github.run_number }}" >> $GITHUB_ENV
             echo "RELEASE_NAME=Canary Build (${{ env.APP_VERSION }}.${{ github.run_number }})" >> $GITHUB_ENV
             echo "IS_PRERELEASE=true" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            # Логіка для ТЕГУ (Стабільний реліз)
+            echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+            echo "RELEASE_NAME=Release ${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+            echo "IS_PRERELEASE=false" >> $GITHUB_ENV
           fi
 
       - name: Create GitHub Release
@@ -102,7 +104,7 @@ jobs:
           tag_name: ${{ env.TAG_NAME }}
           name: ${{ env.RELEASE_NAME }}
           target_commitish: ${{ github.sha }}
-          prerelease: ${{ env.IS_PRERELEASE }}
+          prerelease: ${{ env.IS_PRERELEASE == 'true' }}
           files: |
             Padcher2XQ-Windows.zip
             Padcher2XQ-Linux.tar.gz
