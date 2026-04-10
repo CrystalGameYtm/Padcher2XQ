@@ -5,6 +5,7 @@ env:
 
 on:
   push:
+    # Слухаємо твої реальні гілки
     branches: [ "stable", "canary" ]
     tags:
       - 'v*'
@@ -54,6 +55,7 @@ jobs:
 
   publish_release:
     needs: [build_windows, build_linux]
+    # Публікуємо тільки якщо це пуш в canary АБО створення тегу
     if: github.event_name == 'push' && (github.ref == 'refs/heads/canary' || startsWith(github.ref, 'refs/tags/v'))
     runs-on: ubuntu-latest
     permissions:
@@ -85,11 +87,9 @@ jobs:
         id: metadata
         run: |
           if [[ "${{ github.ref }}" == refs/heads/canary ]]; then
-
             echo "TAG_NAME=${{ env.APP_VERSION }}-canary-${{ github.run_number }}" >> $GITHUB_ENV
-            echo "RELEASE_NAME=Snapshot (${{ env.APP_VERSION }}.${{ github.run_number }})" >> $GITHUB_ENV
+            echo "RELEASE_NAME=Canary Build (${{ env.APP_VERSION }}.${{ github.run_number }})" >> $GITHUB_ENV
             echo "IS_PRERELEASE=true" >> $GITHUB_ENV
-            
           elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
             echo "RELEASE_NAME=Release ${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
