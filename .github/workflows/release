@@ -1,0 +1,21 @@
+changelog:
+  categories:
+    - title: 🚀 Нові фічі (Features)
+      labels:
+        - feature
+        - enhancement
+    - title: 🐛 Виправлення багів (Bug Fixes)
+      labels:
+        - bug
+        - fix
+    - title: 🧰 Технічне обслуговування (Maintenance)
+      labels:
+        - chore
+        - refactor
+        - dependencies
+  exclude:
+    labels:
+      - ignore-for-release
+      - skip-changelog
+    authors:
+      - dependabot[bot]
