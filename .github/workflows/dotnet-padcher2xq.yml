@@ -85,8 +85,13 @@ jobs:
         id: metadata
         run: |
           if [[ "${{ github.ref }}" == refs/heads/canary ]]; then
-            echo "TAG_NAME=snapshot-${YEAR}.${NEXT_NUM}-${{ github.run_number }}" >> $GITHUB_ENV
-            echo "RELEASE_NAME=${{ env.APP_VERSION }} Snapshot ${YEAR}.${NEXT_NUM}" >> $GITHUB_ENV
+            # Генеруємо рік (наприклад, 2026) та місяць (наприклад, 04)
+            YEAR=$(date +'%Y')
+            MONTH=$(date +'%m')
+            
+            # Збираємо красиву назву тегу: snapshot-2026.04-45
+            echo "TAG_NAME=snapshot-${YEAR}.${MONTH}-${{ github.run_number }}" >> $GITHUB_ENV
+            echo "RELEASE_NAME=${{ env.APP_VERSION }} Snapshot ${YEAR}.${MONTH} (Build ${{ github.run_number }})" >> $GITHUB_ENV
             echo "IS_PRERELEASE=true" >> $GITHUB_ENV
           elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
