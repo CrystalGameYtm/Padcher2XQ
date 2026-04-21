@@ -6,7 +6,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System;
-
 namespace Padcher2XQ.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
@@ -48,14 +47,42 @@ public partial class MainWindowViewModel : ViewModelBase
         ) 
     {
         _historyService= new HistoryService();
-        LoadHistory;
         _windowService = windowService;
         _fileDialogService = fileDialogService;
         _patcherService = patcherService;
         _checksumService = checksumService;
         _raService = raService;
     }
+    public ObservableCollection<string> RecentRomPaths { get; } = new();
+    public ObservableCollection<string> RecentPatchPaths { get; } = new();
 
+    public async Task LoadHistoryAsync()
+    {
+        var history = await _historyService.GetHistoryAsync();
+    
+        RecentRomPaths.Clear();
+        RecentPatchPaths.Clear();
+
+        var uniqueRoms = history
+            .Select(h => h.RomPath)
+            .Where(p => !string.IsNullOrEmpty(p))
+            .Distinct();
+        
+        foreach (var path in uniqueRoms)
+        {
+            RecentRomPaths.Add(path);
+        }
+
+        var uniquePatches = history
+            .Select(h => h.PatchPath)
+            .Where(p => !string.IsNullOrEmpty(p))
+            .Distinct();
+        
+        foreach (var path in uniquePatches)
+        {
+            RecentPatchPaths.Add(path);
+        }
+    }
     [RelayCommand]
     private async Task SelectRomFile()
     {
