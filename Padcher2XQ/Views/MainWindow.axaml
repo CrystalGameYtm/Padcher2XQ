@@ -10,13 +10,13 @@
         Title="Padcher2XQ"
         Width="900" Height="540" CanResize="False"
         WindowStartupLocation="CenterScreen"
-        DragDrop.AllowDrop="True">
+        >
 
     <Design.DataContext>
         <vm:MainWindowViewModel/>
     </Design.DataContext>
     
-    <Grid Background="Transparent">
+    <Grid Background="Transparent" DragDrop.AllowDrop="True">
         <DockPanel Margin="16">
             <StackPanel Spacing="10">
                 
