@@ -11,6 +11,7 @@ namespace Padcher2XQ.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
+    private readonly HistoryService _historyService;
     private readonly IWindowService _windowService;
     private readonly IFileDialogService _fileDialogService;
     private readonly PatcherService _patcherService;
@@ -38,6 +39,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private string _statusMessageColor = "Gray";
 
     public MainWindowViewModel(
+        
         IWindowService windowService, 
         IFileDialogService fileDialogService, 
         PatcherService patcherService, 
@@ -45,6 +47,8 @@ public partial class MainWindowViewModel : ViewModelBase
         RetroAchievementsService raService
         ) 
     {
+        _historyService= new HistoryService();
+        LoadHistory;
         _windowService = windowService;
         _fileDialogService = fileDialogService;
         _patcherService = patcherService;
@@ -158,15 +162,17 @@ public partial class MainWindowViewModel : ViewModelBase
 
             var (c, m, s) = await _checksumService.CalculateChecksumsAsync(OutputPath!);
             PatchedCrc32 = c; PatchedMd5 = m; PatchedSha1 = s;
-
+           
             UpdateStatus("Success! Patches applied.", "Green");
             await CheckRetroAchievementsAsync(m);
+            await _historyService.AddEntryAsync(RomPath, PatchPath);
         }
         catch (Exception ex)
         {
             UpdateStatus($"Error: {ex.Message}", "Red");
             RaStatus = "Check Failed"; RaStatusColor = "Red";
         }
+        
     }
 
     private async Task CheckRetroAchievementsAsync(string md5)
