@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using Padcher2XQ.Services;
+using Padcher2XQ.Models;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -22,7 +23,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))] private string? _outputPath;
     [ObservableProperty] private string? _patchPathDisplay; 
     [ObservableProperty] private bool _isMultiPatchMode;
-    
+    [ObservableProperty] private ObservableCollection<PatchHistory> _historyEntries = new();
     [ObservableProperty] private string _origCrc32 = "---";
     [ObservableProperty] private string _origMd5 = "---";
     [ObservableProperty] private string _origSha1 = "---";
@@ -30,7 +31,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private string _patchedCrc32 = "---";
     [ObservableProperty] private string _patchedMd5 = "---";
     [ObservableProperty] private string _patchedSha1 = "---";
-    
+    [ObservableProperty] private Func<Task> _loadHistory;
     [ObservableProperty] private string _raStatus = "Waiting for patch...";
     [ObservableProperty] private string _raStatusColor = "Gray";
 
@@ -52,37 +53,27 @@ public partial class MainWindowViewModel : ViewModelBase
         _patcherService = patcherService;
         _checksumService = checksumService;
         _raService = raService;
+        _loadHistory = LoadHistoryAsync;
     }
-    public ObservableCollection<string> RecentRomPaths { get; } = new();
-    public ObservableCollection<string> RecentPatchPaths { get; } = new();
 
     public async Task LoadHistoryAsync()
     {
-        var history = await _historyService.GetHistoryAsync();
-    
-        RecentRomPaths.Clear();
-        RecentPatchPaths.Clear();
-
-        var uniqueRoms = history
-            .Select(h => h.RomPath)
-            .Where(p => !string.IsNullOrEmpty(p))
-            .Distinct();
-        
-        foreach (var path in uniqueRoms)
-        {
-            RecentRomPaths.Add(path);
-        }
-
-        var uniquePatches = history
-            .Select(h => h.PatchPath)
-            .Where(p => !string.IsNullOrEmpty(p))
-            .Distinct();
-        
-        foreach (var path in uniquePatches)
-        {
-            RecentPatchPaths.Add(path);
-        }
+        var items = await _historyService.GetHistoryAsync();
+        HistoryEntries = new ObservableCollection<PatchHistory>(items);
     }
+
+    [RelayCommand]
+    public void SelectHistoryItem(PatchHistory entry)
+    {
+        if (entry == null) return;
+        RomPath = entry.RomPath;
+        PatchPath = entry.PatchPath;
+        
+        OnPropertyChanged(nameof(RomPath));
+        OnPropertyChanged(nameof(PatchPath));
+    }
+
+    
     [RelayCommand]
     private async Task SelectRomFile()
     {
