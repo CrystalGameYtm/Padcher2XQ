@@ -187,6 +187,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
+            Console.WriteLine("CRASH TRACE: " + ex.StackTrace);
             UpdateStatus($"Error: {ex.Message}", "Red");
             RaStatus = "Check Failed"; RaStatusColor = "Red";
         }

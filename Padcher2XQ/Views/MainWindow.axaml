@@ -25,11 +25,9 @@
                 <Grid ColumnDefinitions="*,Auto">
                     <TextBox Text="{Binding RomPath}" Watermark="Select a ROM to patch...">
                         <TextBox.InnerRightContent>
-                            <Button Background="Transparent" BorderThickness="0" Padding="5"
-                                    ToolTip.Tip="History Used Patch">
+                            <Button Background="Transparent" BorderThickness="0" Padding="5" ToolTip.Tip="History Used Patch">
                                 <PathIcon Data="M13,3 A9,9 0 0,0 4,12 A9,9 0 0,0 13,21 A9,9 0 0,0 22,12 A9,9 0 0,0 13,3 M12,7 H13.5 V12.25 L17,14.25 L16.25,15.5 L12,13 V7 Z" 
                                           Width="16" Height="16"/>
-            
                                 <Button.Flyout>
                                     <MenuFlyout ItemsSource="{Binding HistoryEntries}">
                                         <MenuFlyout.ItemContainerTheme>
@@ -37,9 +35,11 @@
                                                 <ControlTheme.BasedOn>
                                                     <StaticResource ResourceKey="{x:Type MenuItem}"/>
                                                 </ControlTheme.BasedOn>
-                                                <MenuItem Header="{Binding RomName}" 
-                                                          Command="{Binding $parent[Window].DataContext.SelectHistoryItemCommand}"
-                                                          CommandParameter="{Binding }"/>
+
+                                                <Setter Property="Header" Value="{Binding RomName}"/>
+                                                <Setter Property="Command" Value="{Binding $parent[Window].DataContext.SelectHistoryItemCommand}"/>
+                                                <Setter Property="CommandParameter" Value="{Binding}"/>
+                        
                                             </ControlTheme>
                                         </MenuFlyout.ItemContainerTheme>
                                     </MenuFlyout>
@@ -61,11 +61,9 @@
                 <Grid ColumnDefinitions="*,Auto">
                     <TextBox Text="{Binding PatchPath}" Watermark="Select a patch file...">
                         <TextBox.InnerRightContent>
-                            <Button Background="Transparent" BorderThickness="0" Padding="5"
-                                     ToolTip.Tip="History Used Patch">
+                            <Button Background="Transparent" BorderThickness="0" Padding="5" ToolTip.Tip="History Used Patch">
                                 <PathIcon Data="M13,3 A9,9 0 0,0 4,12 A9,9 0 0,0 13,21 A9,9 0 0,0 22,12 A9,9 0 0,0 13,3 M12,7 H13.5 V12.25 L17,14.25 L16.25,15.5 L12,13 V7 Z" 
                                           Width="16" Height="16"/>
-            
                                 <Button.Flyout>
                                     <MenuFlyout ItemsSource="{Binding HistoryEntries}">
                                         <MenuFlyout.ItemContainerTheme>
@@ -73,9 +71,11 @@
                                                 <ControlTheme.BasedOn>
                                                     <StaticResource ResourceKey="{x:Type MenuItem}"/>
                                                 </ControlTheme.BasedOn>
-                                                <MenuItem Header="{Binding PatchName}" 
-                                                          Command="{Binding $parent[Window].DataContext.SelectHistoryItemCommand}"
-                                                          CommandParameter="{Binding }"/>
+
+                                                <Setter Property="Header" Value="{Binding PatchName}"/>
+                                                <Setter Property="Command" Value="{Binding $parent[Window].DataContext.SelectHistoryItemCommand}"/>
+                                                <Setter Property="CommandParameter" Value="{Binding}"/>
+                        
                                             </ControlTheme>
                                         </MenuFlyout.ItemContainerTheme>
                                     </MenuFlyout>

@@ -33,7 +33,6 @@ public class PatcherService
         {
             await patchFunc(romPath, patchPath, outputPath);
 
-            // Якщо чекбокс увімкнено — робимо "трансплантацію" байтів
             if (restoreInternalChecksum)
             {
                 await RestoreInternalChecksumAsync(romPath, outputPath);
@@ -301,94 +300,92 @@ public class PatcherService
             }
         });
     }
-    public async Task ApplyBpsPatchAsync(string romPath, string patchPath, string outputPath)
+   public async Task ApplyBpsPatchAsync(string romPath, string patchPath, string outputPath)
+{
+    await Task.Run(() =>
     {
-        await Task.Run(() =>
+        byte[] sourceData = File.ReadAllBytes(romPath);
+        byte[] patchData = File.ReadAllBytes(patchPath);
+
+        if (Encoding.ASCII.GetString(patchData, 0, 4) != "BPS1")
+            throw new Exception("Invalid BPS file header.");
+
+        int patchOffset = 4;
+
+        ulong sourceSize = DecodeBpsNumber(patchData, ref patchOffset);
+        ulong targetSize = DecodeBpsNumber(patchData, ref patchOffset);
+        ulong metaSize = DecodeBpsNumber(patchData, ref patchOffset);
+
+        patchOffset += (int)metaSize;
+
+        byte[] targetData = new byte[targetSize];
+        
+        // За специфікацією BPS потрібні лише ці 3 вказівники
+        int outputOffset = 0;
+        int sourceOffset = 0;
+        int targetOffset = 0; // ДОДАНО: Окремий вказівник для Команди 3
+
+        while (patchOffset < patchData.Length - 12)
         {
-            byte[] sourceData = File.ReadAllBytes(romPath);
-            byte[] patchData = File.ReadAllBytes(patchPath);
+            ulong data = DecodeBpsNumber(patchData, ref patchOffset);
+            ulong command = data & 3;
+            ulong length = (data >> 2) + 1;
 
-            if (Encoding.ASCII.GetString(patchData, 0, 4) != "BPS1")
-                throw new Exception("Invalid BPS file header.");
-
-            int patchOffset = 4;
-
-            ulong sourceSize = DecodeBpsNumber(patchData, ref patchOffset);
-            ulong targetSize = DecodeBpsNumber(patchData, ref patchOffset);
-            ulong metaSize = DecodeBpsNumber(patchData, ref patchOffset);
-
-            patchOffset += (int)metaSize;
-
-            byte[] targetData = new byte[targetSize];
-            int outputOffset = 0;
-            int sourceOffset = 0;
-            int targetOutputOffset = 0;
-
-            while (patchOffset < patchData.Length - 12)
+            switch (command)
             {
-                ulong data = DecodeBpsNumber(patchData, ref patchOffset);
-                ulong command = data & 3;
-                ulong length = (data >> 2) + 1;
+                case 0: // SourceRead
+                    while (length > 0)
+                    {
+                        // ВИПРАВЛЕНО: Читаємо з того самого зміщення, куди й пишемо
+                        targetData[outputOffset] = sourceData[outputOffset];
+                        outputOffset++;
+                        length--;
+                    }
+                    break;
 
-                switch (command)
-                {
-                    case 0:
-                        while (length > 0)
-                        {
-                            targetData[outputOffset] = sourceData[targetOutputOffset];
-                            outputOffset++;
-                            targetOutputOffset++;
-                            length--;
-                        }
-                        break;
+                case 1: // PatchRead (TargetRead)
+                    while (length > 0)
+                    {
+                        targetData[outputOffset] = patchData[patchOffset];
+                        outputOffset++;
+                        patchOffset++;
+                        length--;
+                    }
+                    break;
 
-                    case 1:
-                        while (length > 0)
-                        {
-                            targetData[outputOffset] = patchData[patchOffset];
-                            outputOffset++;
-                            patchOffset++;
-                            length--;
-                        }
-                        break;
+                case 2: // SourceCopy
+                    long dataOffset = (long)DecodeBpsNumber(patchData, ref patchOffset);
+                    sourceOffset += (dataOffset & 1) != 0 ? -(int)(dataOffset >> 1) : (int)(dataOffset >> 1);
 
-                    case 2:
-                        long dataOffset = (long)DecodeBpsNumber(patchData, ref patchOffset);
-                        if ((dataOffset & 1) != 0)
-                            sourceOffset -= (int)(dataOffset >> 1);
-                        else
-                            sourceOffset += (int)(dataOffset >> 1);
+                    while (length > 0)
+                    {
+                        targetData[outputOffset] = sourceData[sourceOffset];
+                        outputOffset++;
+                        sourceOffset++;
+                        length--;
+                    }
+                    break;
 
-                        while (length > 0)
-                        {
-                            targetData[outputOffset] = sourceData[sourceOffset];
-                            outputOffset++;
-                            sourceOffset++;
-                            length--;
-                        }
-                        break;
+                case 3: // TargetCopy
+                    long dataOffset3 = (long)DecodeBpsNumber(patchData, ref patchOffset);
+                    
+                    // ВИПРАВЛЕНО: Використовуємо targetOffset замість sourceOffset
+                    targetOffset += (dataOffset3 & 1) != 0 ? -(int)(dataOffset3 >> 1) : (int)(dataOffset3 >> 1);
 
-                    case 3:
-                        long dataOffset3 = (long)DecodeBpsNumber(patchData, ref patchOffset);
-                        if ((dataOffset3 & 1) != 0)
-                            sourceOffset -= (int)(dataOffset3 >> 1);
-                        else
-                            sourceOffset += (int)(dataOffset3 >> 1);
-
-                        while (length > 0)
-                        {
-                            targetData[outputOffset] = targetData[sourceOffset];
-                            outputOffset++;
-                            sourceOffset++;
-                            length--;
-                        }
-                        break;
-                }
+                    while (length > 0)
+                    {
+                        targetData[outputOffset] = targetData[targetOffset];
+                        outputOffset++;
+                        targetOffset++; // ВИПРАВЛЕНО
+                        length--;
+                    }
+                    break;
             }
-            
-            File.WriteAllBytes(outputPath, targetData);
-        });
-    }
+        }
+        
+        File.WriteAllBytes(outputPath, targetData);
+    });
+}
 
     private ulong DecodeBpsNumber(byte[] data, ref int offset)
     {
