@@ -23,7 +23,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))] private string? _outputPath;
     [ObservableProperty] private string? _patchPathDisplay; 
     [ObservableProperty] private bool _isMultiPatchMode;
-    [ObservableProperty] private ObservableCollection<PatchHistory> _historyEntries = new();
+    [ObservableProperty] private ObservableCollection<PatcherHistory> _historyEntries = new();
     [ObservableProperty] private string _origCrc32 = "---";
     [ObservableProperty] private string _origMd5 = "---";
     [ObservableProperty] private string _origSha1 = "---";
@@ -34,45 +34,53 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private Func<Task> _loadHistory;
     [ObservableProperty] private string _raStatus = "Waiting for patch...";
     [ObservableProperty] private string _raStatusColor = "Gray";
-
+    public ObservableCollection<RomEntry> RomHistoryEntries { get; } = new();
+    public ObservableCollection<PatchEntry> PatchHistoryEntries { get; } = new();
     [ObservableProperty] private string _statusMessage = "Ready to patch.";
     [ObservableProperty] private string _statusMessageColor = "Gray";
 
     public MainWindowViewModel(
-        
         IWindowService windowService, 
         IFileDialogService fileDialogService, 
         PatcherService patcherService, 
         ChecksumService checksumService,
-        RetroAchievementsService raService
-        ) 
+        RetroAchievementsService raService) 
     {
-        _historyService= new HistoryService();
+        _historyService = new HistoryService();
         _windowService = windowService;
         _fileDialogService = fileDialogService;
         _patcherService = patcherService;
         _checksumService = checksumService;
         _raService = raService;
-        _loadHistory = LoadHistoryAsync;
+    
+        // ОСЬ ТУТ: Запускаємо завантаження історії при старті програми!
+        _ = LoadHistoryAsync(); 
     }
-
     public async Task LoadHistoryAsync()
     {
-        var items = await _historyService.GetHistoryAsync();
-        HistoryEntries = new ObservableCollection<PatchHistory>(items);
+        var history = await _historyService.GetHistoryAsync();
+    
+        RomHistoryEntries.Clear();
+        foreach (var rom in history.RomHistory) RomHistoryEntries.Add(rom);
+    
+        PatchHistoryEntries.Clear();
+        foreach (var patch in history.PatchHistory) PatchHistoryEntries.Add(patch);
     }
 
     [RelayCommand]
-    public void SelectHistoryItem(PatchHistory entry)
+    public void SelectRomHistoryItem(RomEntry entry)
     {
         if (entry == null) return;
         RomPath = entry.RomPath;
-        PatchPath = entry.PatchPath;
-        
         OnPropertyChanged(nameof(RomPath));
+    }
+    [RelayCommand]
+    public void SelectPatchHistoryItem(PatchEntry entry)
+    {
+        if (entry == null) return;
+        PatchPath = entry.PatchPath;
         OnPropertyChanged(nameof(PatchPath));
     }
-
     
     [RelayCommand]
     private async Task SelectRomFile()
@@ -122,7 +130,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private bool CanApplyPatch() 
     {
         if (string.IsNullOrEmpty(RomPath) || string.IsNullOrEmpty(OutputPath)) return false;
-        return IsMultiPatchMode ? SelectedPatches.Any() : !string.IsNullOrEmpty(PatchPath);
+        return IsMultiPatchMode ? SelectedPatches.Any() : !string.IsNullOrEmpty(PatchPath); 
     }
     
     public async void HandleDroppedFiles(string[] files)
@@ -183,7 +191,8 @@ public partial class MainWindowViewModel : ViewModelBase
            
             UpdateStatus("Success! Patches applied.", "Green");
             await CheckRetroAchievementsAsync(m);
-            await _historyService.AddEntryAsync(RomPath, PatchPath);
+            _historyService.AddEntriesAsync(RomPath, PatchPath);
+            await LoadHistoryAsync();
         }
         catch (Exception ex)
         {

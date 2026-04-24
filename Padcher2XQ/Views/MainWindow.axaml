@@ -20,71 +20,53 @@
         <DockPanel Margin="16">
             <StackPanel Spacing="10">
                 
-                <TextBlock Text="ROM File" FontWeight="SemiBold"/>
+                <TextBlock Text="ROM File" FontWeight="SemiBold"  Margin="0,8,0,0"/>
                 
-                <Grid ColumnDefinitions="*,Auto">
-                    <TextBox Text="{Binding RomPath}" Watermark="Select a ROM to patch...">
-                        <TextBox.InnerRightContent>
-                            <Button Background="Transparent" BorderThickness="0" Padding="5" ToolTip.Tip="History Used Patch">
-                                <PathIcon Data="M13,3 A9,9 0 0,0 4,12 A9,9 0 0,0 13,21 A9,9 0 0,0 22,12 A9,9 0 0,0 13,3 M12,7 H13.5 V12.25 L17,14.25 L16.25,15.5 L12,13 V7 Z" 
-                                          Width="16" Height="16"/>
-                                <Button.Flyout>
-                                    <MenuFlyout ItemsSource="{Binding HistoryEntries}">
-                                        <MenuFlyout.ItemContainerTheme>
-                                            <ControlTheme TargetType="MenuItem">
-                                                <ControlTheme.BasedOn>
-                                                    <StaticResource ResourceKey="{x:Type MenuItem}"/>
-                                                </ControlTheme.BasedOn>
-
-                                                <Setter Property="Header" Value="{Binding RomName}"/>
-                                                <Setter Property="Command" Value="{Binding $parent[Window].DataContext.SelectHistoryItemCommand}"/>
-                                                <Setter Property="CommandParameter" Value="{Binding}"/>
-                        
-                                            </ControlTheme>
-                                        </MenuFlyout.ItemContainerTheme>
-                                    </MenuFlyout>
-                                </Button.Flyout>
-                            </Button>
-                        </TextBox.InnerRightContent>
-                    </TextBox>
-                    <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectRomFileCommand}" ToolTip.Tip="Browse for ROM file"/>
-                </Grid>
-               
-
-               
-                <DockPanel Margin="0,8,0,0">
-                    <TextBlock Text="Patch File(s)" FontWeight="SemiBold" VerticalAlignment="Center" DockPanel.Dock="Left"/>
-                 
-                    <CheckBox Content="MultiPatch Mode" IsChecked="{Binding IsMultiPatchMode}" HorizontalAlignment="Right"/>
-                </DockPanel>
-                
-                <Grid ColumnDefinitions="*,Auto">
-                    <TextBox Text="{Binding PatchPath}" Watermark="Select a patch file...">
-                        <TextBox.InnerRightContent>
-                            <Button Background="Transparent" BorderThickness="0" Padding="5" ToolTip.Tip="History Used Patch">
-                                <PathIcon Data="M13,3 A9,9 0 0,0 4,12 A9,9 0 0,0 13,21 A9,9 0 0,0 22,12 A9,9 0 0,0 13,3 M12,7 H13.5 V12.25 L17,14.25 L16.25,15.5 L12,13 V7 Z" 
-                                          Width="16" Height="16"/>
-                                <Button.Flyout>
-                                    <MenuFlyout ItemsSource="{Binding HistoryEntries}">
-                                        <MenuFlyout.ItemContainerTheme>
-                                            <ControlTheme TargetType="MenuItem">
-                                                <ControlTheme.BasedOn>
-                                                    <StaticResource ResourceKey="{x:Type MenuItem}"/>
-                                                </ControlTheme.BasedOn>
-
-                                                <Setter Property="Header" Value="{Binding PatchName}"/>
-                                                <Setter Property="Command" Value="{Binding $parent[Window].DataContext.SelectHistoryItemCommand}"/>
-                                                <Setter Property="CommandParameter" Value="{Binding}"/>
-                        
-                                            </ControlTheme>
-                                        </MenuFlyout.ItemContainerTheme>
-                                    </MenuFlyout>
-                                </Button.Flyout>
-                            </Button>
-                        </TextBox.InnerRightContent>
-                    </TextBox>
-                    <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectPatchFileCommand}" ToolTip.Tip="Browse for patch file(s)"/>
-                </Grid>
+               <Grid ColumnDefinitions="*,Auto">
+    <TextBox Text="{Binding RomPath}" PlaceholderText="Select a ROM to patch...">
+        <TextBox.InnerRightContent>
+            <Button Background="Transparent" BorderThickness="0" Padding="5">
+                <PathIcon Data="M13,3 A9,9 0 0,0 4,12 A9,9 0 0,0 13,21 A9,9 0 0,0 22,12 A9,9 0 0,0 13,3 M12,7 H13.5 V12.25 L17,14.25 L16.25,15.5 L12,13 V7 Z" 
+                          Width="16" Height="16"/>
+                <Button.Flyout>
+                    <MenuFlyout ItemsSource="{Binding RomHistoryEntries}">
+                        <MenuFlyout.ItemContainerTheme>
+                            <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                <Setter Property="Header" Value="{Binding RomName}"/>
+                                <Setter Property="Command" Value="{Binding $parent[Window].DataContext.SelectRomHistoryItemCommand}"/>
+                                <Setter Property="CommandParameter" Value="{Binding}"/>
+                            </ControlTheme>
+                        </MenuFlyout.ItemContainerTheme>
+                    </MenuFlyout>
+                </Button.Flyout>
+            </Button>
+        </TextBox.InnerRightContent>
+    </TextBox>
+    <Button Grid.Column="1" Content="..." Command="{Binding SelectRomFileCommand}"/>
+</Grid>
+                <TextBlock Text="Patch File" FontWeight="SemiBold"  Margin="0,8,0,0"/>
+<Grid ColumnDefinitions="*,Auto" Margin="0,5,0,0">
+    <TextBox Text="{Binding PatchPath}" PlaceholderText="Select a patch file...">
+        <TextBox.InnerRightContent>
+            <Button Background="Transparent" BorderThickness="0" Padding="5">
+                <PathIcon Data="M13,3 A9,9 0 0,0 4,12 A9,9 0 0,0 13,21 A9,9 0 0,0 22,12 A9,9 0 0,0 13,3 M12,7 H13.5 V12.25 L17,14.25 L16.25,15.5 L12,13 V7 Z" 
+                          Width="16" Height="16"/>
+                <Button.Flyout>
+                    <MenuFlyout ItemsSource="{Binding PatchHistoryEntries}">
+                        <MenuFlyout.ItemContainerTheme>
+                            <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                <Setter Property="Header" Value="{Binding PatchName}"/>
+                                <Setter Property="Command" Value="{Binding $parent[Window].DataContext.SelectPatchHistoryItemCommand}"/>
+                                <Setter Property="CommandParameter" Value="{Binding}"/>
+                            </ControlTheme>
+                        </MenuFlyout.ItemContainerTheme>
+                    </MenuFlyout>
+                </Button.Flyout>
+            </Button>
+        </TextBox.InnerRightContent>
+    </TextBox>
+    <Button Grid.Column="1" Content="..." Command="{Binding SelectPatchFileCommand}"/>
+</Grid>
 
                 <TextBlock Text="Output File" FontWeight="SemiBold" Margin="0,8,0,0"/>
                 <Grid ColumnDefinitions="*,Auto">

@@ -1,57 +1,68 @@
 using System;
-using System.Collections.Generic;
 using System.Text.Json;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Padcher2XQ.Models;
-namespace Padcher2XQ.Services;
 public class HistoryService
 {
-    
-    private readonly string _historyfilePath;
-    private const int MaxEntries = 10;
+    private readonly string _filePath;
+    private const int MaxEntries = 20;
 
     public HistoryService()
-    { 
-        _historyfilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "history.json");
-        
+    {
+        _filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "history.json");
     }
 
-    public async Task AddEntryAsync(string romPath, string patchPath)
+    public async Task AddEntriesAsync(string romPath, string patchPath)
     {
         var history = await GetHistoryAsync();
-        
-        var newEntry = new PatchHistory
-        { 
-            RomPath = romPath, 
-            RomName = Path.GetFileName(romPath),
-            PatchPath = patchPath 
-        };
 
-        history.Insert(0, newEntry);
-        
-        var updatedHistory = history.Take(MaxEntries).ToList();
+        if (!string.IsNullOrWhiteSpace(romPath))
+        {
+            var existingRom = history.RomHistory.FirstOrDefault(r => r.RomPath == romPath);
+            if (existingRom != null) history.RomHistory.Remove(existingRom);
+            
+            history.RomHistory.Insert(0, new RomEntry 
+            {
+                RomName = Path.GetFileName(romPath),
+                RomPath = romPath,
+                RomFormat = Path.GetExtension(romPath)
+            });
+        }
 
-        var json = JsonSerializer.Serialize(updatedHistory, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(_historyfilePath, json);
+        if (!string.IsNullOrWhiteSpace(patchPath))
+        {
+            var existingPatch = history.PatchHistory.FirstOrDefault(p => p.PatchPath == patchPath);
+            if (existingPatch != null) history.PatchHistory.Remove(existingPatch);
+            
+            history.PatchHistory.Insert(0, new PatchEntry 
+            {
+                PatchName = Path.GetFileName(patchPath),
+                PatchPath = patchPath,
+                PatchFormat = Path.GetExtension(patchPath)
+            });
+        }
+
+        // 3. Обрізаємо списки, щоб файл не розростався безкінечно
+        history.RomHistory = history.RomHistory.Take(MaxEntries).ToList();
+        history.PatchHistory = history.PatchHistory.Take(MaxEntries).ToList();
+
+        var json = JsonSerializer.Serialize(history, new JsonSerializerOptions { WriteIndented = true });
+        await File.WriteAllTextAsync(_filePath, json);
     }
 
-    public async Task<List<PatchHistory>> GetHistoryAsync()
+    public async Task<PatcherHistory> GetHistoryAsync()
     {
-        if (!File.Exists(_historyfilePath)) 
-            return new List<PatchHistory>();
-
+        if (!File.Exists(_filePath)) return new PatcherHistory();
         try
         {
-            var json = await File.ReadAllTextAsync(_historyfilePath);
-            return JsonSerializer.Deserialize<List<PatchHistory>>(json) 
-                   ?? new List<PatchHistory>();
+            var json = await File.ReadAllTextAsync(_filePath);
+            return JsonSerializer.Deserialize<PatcherHistory>(json) ?? new PatcherHistory();
         }
-        catch (Exception ex)
+        catch
         {
-            Console.WriteLine($"Помилка читання історії: {ex.Message}");
-            return new List<PatchHistory>();
+            return new PatcherHistory();
         }
     }
 }
