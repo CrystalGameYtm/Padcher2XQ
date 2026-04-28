@@ -284,6 +284,7 @@ public partial class MainWindowViewModel : ViewModelBase
             }
             ZipArchiveEntry? selectedEntry = null;
 
+            string? selectedName;
             if (patchEntries.Count == 1)
             {
                 selectedEntry = patchEntries[0];
@@ -292,7 +293,7 @@ public partial class MainWindowViewModel : ViewModelBase
             {
 
                 var entryNames = patchEntries.Select(e => e.FullName).ToList();
-                var selectedName = await _windowService.ShowSelectZip(entryNames);
+                selectedName = _windowService.ShowSelectZip();
                 
                 if (string.IsNullOrEmpty(selectedName)) return; 
                 selectedEntry = patchEntries.First(e => e.FullName == selectedName);
