@@ -11,6 +11,8 @@ namespace Padcher2XQ.Services;
 
 public class FileDialogService : IFileDialogService
 {
+    private IFileDialogService _fileDialogServiceImplementation;
+
     private Window? GetMainWindow()
     {
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
@@ -20,7 +22,6 @@ public class FileDialogService : IFileDialogService
         return null;
     }
 
-    // Реалізація з 3 аргументами та поверненням масиву
     public async Task<string[]?> OpenFileAsync(string title, string[] extensions, bool allowMultiple = false)
     {
         var window = GetMainWindow();
@@ -39,9 +40,9 @@ public class FileDialogService : IFileDialogService
 
         var result = await window.StorageProvider.OpenFilePickerAsync(options);
         
-        // Перетворюємо результат у масив рядків
         return result.Count > 0 ? result.Select(x => x.Path.LocalPath).ToArray() : null;
     }
+    
 
     public async Task<string?> SaveFileAsync(string title, string defaultName, string extension)
     {

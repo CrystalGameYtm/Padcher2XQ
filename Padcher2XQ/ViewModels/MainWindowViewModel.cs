@@ -7,6 +7,8 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System;
+using System.IO.Compression; 
+
 namespace Padcher2XQ.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
@@ -101,23 +103,7 @@ public partial class MainWindowViewModel : ViewModelBase
             UpdateStatus("ROM loaded.", "Green");
         }
     }
-
-    [RelayCommand]
-    private async Task SelectPatchFile()
-    {
-        var paths = await _fileDialogService.OpenFileAsync(IsMultiPatchMode ? "Select Patches" : "Select Patch", new[] { "*.ips", "*.bps", "*.asm", "*.xdelta", "*.ups" }, IsMultiPatchMode );
-        if (paths?.FirstOrDefault() is string path_patch) PatchPath = path_patch; 
-      
-        if (paths != null && paths.Length > 0)
-        {
-            SelectedPatches.Clear();
-            foreach (var p in paths) SelectedPatches.Add(p);
-
-            PatchPathDisplay = paths.Length == 1 ? paths[0] : $"{paths.Length} patches selected";
-            GenerateDefaultOutputPath();
-            ApplyPatchCommand.NotifyCanExecuteChanged();
-        }
-        }
+    
     
     [RelayCommand]
     private async Task SelectOutputFile()
@@ -133,46 +119,6 @@ public partial class MainWindowViewModel : ViewModelBase
         return IsMultiPatchMode ? SelectedPatches.Any() : !string.IsNullOrEmpty(PatchPath); 
     }
     
-    public async void HandleDroppedFiles(string[] files)
-    {
-        var romExtensions = new[] { ".nes", ".iso", ".gen", ".n64", ".gbc", ".md", ".z64", ".sfc", ".smc", ".bin", ".gba", ".nds" };
-        var patchExtensions = new[] { ".ips", ".bps", ".ups", ".xdelta", ".asm" };
-
-        foreach (var file in files)
-        {
-            var ext = Path.GetExtension(file).ToLower();
-
-            if (romExtensions.Contains(ext))
-            {
-                RomPath = file;
-                GenerateDefaultOutputPath();
-                PatchedCrc32 = "---"; PatchedMd5 = "---"; PatchedSha1 = "---";
-                RaStatus = "Waiting for patch..."; RaStatusColor = "Gray";
-                
-                UpdateStatus("Calculating Original Checksums...", "DodgerBlue");
-                
-                var (c, m, s) = await _checksumService.CalculateChecksumsAsync(RomPath);
-                OrigCrc32 = c; OrigMd5 = m; OrigSha1 = s;
-                
-                UpdateStatus("ROM loaded via Drag&Drop.", "Green");
-            }
-            else if (patchExtensions.Contains(ext))
-            {
-                if (IsMultiPatchMode)
-                {
-                    if (!SelectedPatches.Contains(file))
-                        SelectedPatches.Add(file);
-                    
-                    PatchPathDisplay = $"{SelectedPatches.Count} patches selected";
-                }
-                else
-                {
-                    PatchPath = file;
-                    PatchPathDisplay = file; 
-                }
-            }
-        }
-    }
     [RelayCommand(CanExecute = nameof(CanApplyPatch))]
     private async Task ApplyPatch()
     {
@@ -219,7 +165,6 @@ public partial class MainWindowViewModel : ViewModelBase
             RaStatusColor = "IndianRed";
         }
     }
-
     partial void OnIsMultiPatchModeChanged(bool value)
     {
         SelectedPatches.Clear();
@@ -247,5 +192,122 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         StatusMessage = message;
         StatusMessageColor = color;
+    }
+    public void HandleDroppedFiles(string[] files)
+    {
+        var romExtensions = new[] { ".nes", ".iso", ".gen", ".n64", ".gbc", ".md", ".z64", ".sfc", ".smc", ".bin", ".gba", ".nds" };
+        var patchExtensions = new[] { ".ips", ".bps", ".ups", ".xdelta", ".asm" };
+
+        foreach (var file in files)
+        {
+            var ext = Path.GetExtension(file).ToLower();
+
+            if (romExtensions.Contains(ext))
+            {
+                RomPath = file;
+                GenerateDefaultOutputPath();
+                PatchedCrc32 = "---"; PatchedMd5 = "---"; PatchedSha1 = "---";
+                RaStatus = "Waiting for patch..."; RaStatusColor = "Gray";
+                
+                UpdateStatus("Calculating Original Checksums...", "DodgerBlue");
+                var (c, m, s) = _checksumService.CalculateChecksumsAsync(RomPath).Result; 
+                OrigCrc32 = c; OrigMd5 = m; OrigSha1 = s;
+                
+                UpdateStatus("ROM loaded via Drag&Drop.", "Green");
+            }
+            else if (ext == ".zip") 
+            {
+                _ = HandleZipFileAsync(file);
+            }
+            else if (patchExtensions.Contains(ext))
+            {
+                AddPatchToList(file);
+            }
+        }
+    }
+
+    [RelayCommand]
+    private async Task SelectPatchFile()
+    {
+        var paths = await _fileDialogService.OpenFileAsync(
+            IsMultiPatchMode ? "Select Patches or ZIP" : "Select Patch or ZIP", 
+            new[] { "*.ips", "*.bps", "*.asm", "*.xdelta", "*.ups", "*.zip" },
+            IsMultiPatchMode);
+            
+        if (paths == null || paths.Length == 0) return;
+
+        foreach (var path in paths)
+        {
+            if (Path.GetExtension(path).ToLower() == ".zip")
+            {
+                await HandleZipFileAsync(path);
+            }
+            else
+            {
+                AddPatchToList(path);
+            }
+        }
+    }
+
+    private void AddPatchToList(string file)
+    {
+        if (IsMultiPatchMode)
+        {
+            if (!SelectedPatches.Contains(file)) SelectedPatches.Add(file);
+            PatchPathDisplay = $"{SelectedPatches.Count} patches selected";
+        }
+        else
+        {
+            PatchPath = file;
+            PatchPathDisplay = file;
+        }
+        GenerateDefaultOutputPath();
+        ApplyPatchCommand.NotifyCanExecuteChanged();
+    }
+
+    private async Task HandleZipFileAsync(string zipPath)
+    {
+        var validExtensions = new[] { ".ips", ".bps", ".ups", ".xdelta", ".asm" };
+        
+        try
+        {
+            await using var archive = ZipFile.OpenRead(zipPath);
+            
+            var patchEntries = archive.Entries
+                .Where(e => validExtensions.Contains(Path.GetExtension(e.FullName).ToLower()))
+                .ToList();
+
+            if (patchEntries.Count == 0)
+            {
+                UpdateStatus("No valid patches found in ZIP.", "IndianRed");
+                return;
+            }
+            ZipArchiveEntry? selectedEntry = null;
+
+            if (patchEntries.Count == 1)
+            {
+                selectedEntry = patchEntries[0];
+            }
+            else
+            {
+
+                var entryNames = patchEntries.Select(e => e.FullName).ToList();
+                var selectedName = await _windowService.ShowSelectZip(entryNames);
+                
+                if (string.IsNullOrEmpty(selectedName)) return; 
+                selectedEntry = patchEntries.First(e => e.FullName == selectedName);
+            }
+
+            string extractPath = Path.Combine(Path.GetTempPath(), selectedEntry.Name);
+            
+            selectedEntry.ExtractToFile(extractPath, overwrite: true);
+
+            AddPatchToList(extractPath);
+            UpdateStatus($"Loaded {selectedEntry.Name} from ZIP.", "LimeGreen");
+        }
+        catch (Exception ex)
+        {
+            UpdateStatus($"ZIP Error: {ex.Message}", "Red");
+        }
     }
 }

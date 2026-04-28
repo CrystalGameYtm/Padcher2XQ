@@ -333,17 +333,16 @@ public class PatcherService
 
             switch (command)
             {
-                case 0: // SourceRead
+                case 0: 
                     while (length > 0)
                     {
-                        // ВИПРАВЛЕНО: Читаємо з того самого зміщення, куди й пишемо
                         targetData[outputOffset] = sourceData[outputOffset];
                         outputOffset++;
                         length--;
                     }
                     break;
 
-                case 1: // PatchRead (TargetRead)
+                case 1: 
                     while (length > 0)
                     {
                         targetData[outputOffset] = patchData[patchOffset];
@@ -353,7 +352,7 @@ public class PatcherService
                     }
                     break;
 
-                case 2: // SourceCopy
+                case 2:
                     long dataOffset = (long)DecodeBpsNumber(patchData, ref patchOffset);
                     sourceOffset += (dataOffset & 1) != 0 ? -(int)(dataOffset >> 1) : (int)(dataOffset >> 1);
 
@@ -366,17 +365,15 @@ public class PatcherService
                     }
                     break;
 
-                case 3: // TargetCopy
+                case 3:
                     long dataOffset3 = (long)DecodeBpsNumber(patchData, ref patchOffset);
-                    
-                    // ВИПРАВЛЕНО: Використовуємо targetOffset замість sourceOffset
                     targetOffset += (dataOffset3 & 1) != 0 ? -(int)(dataOffset3 >> 1) : (int)(dataOffset3 >> 1);
 
                     while (length > 0)
                     {
                         targetData[outputOffset] = targetData[targetOffset];
                         outputOffset++;
-                        targetOffset++; // ВИПРАВЛЕНО
+                        targetOffset++; 
                         length--;
                     }
                     break;
