@@ -59,15 +59,11 @@ public class PatcherService
             {
                 currentTarget = (i % 2 == 0) ? tempFile2 : tempFile1;
                 currentSource = (i % 2 == 0) ? tempFile1 : tempFile2;
-
-                // Під час проміжних патчів чексуму НЕ чіпаємо, щоб не зламати ланцюжок
                 await PatchSingleFileAsync(currentSource, patchPaths[i], currentTarget, false);
             }
 
             if (File.Exists(finalOutputPath)) File.Delete(finalOutputPath);
             File.Move(currentTarget, finalOutputPath);
-
-            // Відновлюємо чексуму тільки у фінальному результаті
             if (restoreInternalChecksum)
             {
                 await RestoreInternalChecksumAsync(romPath, finalOutputPath);
@@ -90,12 +86,8 @@ public class PatcherService
 
                 byte[] origBytes = File.ReadAllBytes(originalRomPath);
                 byte[] patchedBytes = File.ReadAllBytes(patchedRomPath);
-
-                // Визначаємо, чи є в РОМі Copier Header (зазвичай 512 байт)
                 int headerOffset = (origBytes.Length % 0x400 == 0x200) ? 0x200 : 0;
                 bool checksumRestored = false;
-
-                // 1. ПЕРЕВІРКА SNES LoROM
                 int loRomInverse = headerOffset + 0x7FDC;
                 int loRomCheck = headerOffset + 0x7FDE;
                 if (origBytes.Length > loRomCheck + 1 && patchedBytes.Length > loRomCheck + 1)
@@ -111,7 +103,6 @@ public class PatcherService
                     }
                 }
 
-                // 2. ПЕРЕВІРКА SNES HiROM
                 int hiRomInverse = headerOffset + 0xFFDC;
                 int hiRomCheck = headerOffset + 0xFFDE;
                 if (!checksumRestored && origBytes.Length > hiRomCheck + 1 && patchedBytes.Length > hiRomCheck + 1)
@@ -127,7 +118,6 @@ public class PatcherService
                     }
                 }
 
-                // 3. ПЕРЕВІРКА Sega Genesis / Mega Drive
                 int genCheck = 0x18E;
                 if (!checksumRestored && origBytes.Length > genCheck + 1 && patchedBytes.Length > genCheck + 1)
                 {
@@ -144,10 +134,7 @@ public class PatcherService
                     File.WriteAllBytes(patchedRomPath, patchedBytes);
                 }
             }
-            catch (Exception)
-            {
-                // Якщо РОМ занадто великий або виникла помилка, ігноруємо, щоб не крашити програму
-            }
+            catch (Exception) { }
         });
     }
 
@@ -225,13 +212,11 @@ public class PatcherService
 
     private async Task ApplyXdeltaPatchAsync(string romPath, string patchPath, string outputPath)
     {
-        // Виправлено: беремо шлях саме до xDelta, а не до Asar
         string xdeltaPath = _settings.Config.XdeltaPath;
         if (string.IsNullOrWhiteSpace(xdeltaPath)) xdeltaPath = "xdelta3.exe";
 
         if (Path.IsPathRooted(xdeltaPath) && !File.Exists(xdeltaPath))
             throw new FileNotFoundException($"xDelta3 executable not found at: {xdeltaPath}");
-
         var startInfo = new ProcessStartInfo
         {
             FileName = xdeltaPath,
@@ -291,7 +276,7 @@ public class PatcherService
                         writer.Write(rleByte);
                     }
                 }
-                else // Normal Record
+                else 
                 {
                     byte[] data = reader.ReadBytes(size);
                     outputStream.Seek(offset, SeekOrigin.Begin);
@@ -319,11 +304,9 @@ public class PatcherService
         patchOffset += (int)metaSize;
 
         byte[] targetData = new byte[targetSize];
-        
-        // За специфікацією BPS потрібні лише ці 3 вказівники
         int outputOffset = 0;
         int sourceOffset = 0;
-        int targetOffset = 0; // ДОДАНО: Окремий вказівник для Команди 3
+        int targetOffset = 0;
 
         while (patchOffset < patchData.Length - 12)
         {

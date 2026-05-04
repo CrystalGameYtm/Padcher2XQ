@@ -81,11 +81,6 @@ class Program
 
         try
         {
-            // ТУТ МАЄ БУТИ ВИКЛИК ТВОГО СЕРВІСУ ПАТЧІНГУ
-            // Наприклад: 
-            // var patcherService = new PatcherService();
-            // await patcherService.ApplyPatchAsync(romPath, patchPath, outPath);
-
             Console.WriteLine("Success! Patch applied correctly.");
             Environment.Exit(0); 
         }

@@ -10,44 +10,63 @@ public class RetroAchievementsService
     private readonly HttpClient _httpClient;
     private readonly SettingsService _settings;
     
-    // Тепер DI-контейнер сам передасть сюди SettingsService
     public RetroAchievementsService(SettingsService settings)
     {
         _httpClient = new HttpClient();
+        // Сервери RA дуже не люблять "анонімні" запити, тому представляємось:
+        _httpClient.DefaultRequestHeaders.Add("User-Agent", "Padcher2XQ/1.0");
         _settings = settings;
     }
 
-    public async Task<(bool isSupported, string gameTitle)> CheckHashSupportAsync(string md5Hash)
+    public async Task<(bool isSupported, string resultMessage)> CheckHashSupportAsync(string md5Hash)
     {
         if (string.IsNullOrEmpty(md5Hash) || md5Hash == "---") return (false, "Invalid Hash");
 
-        string apiUser = _settings.Config.RaUser; 
-        string apiKey = _settings.Config.RaApiKey;
+        string apiUser = _settings.Config.RaUser?.Trim() ?? ""; 
+        string apiKey = _settings.Config.RaApiKey?.Trim() ?? "";
 
         if (string.IsNullOrWhiteSpace(apiUser) || string.IsNullOrWhiteSpace(apiKey))
         {
-            return (false, "RA API Keys not configured in Settings");
+            return (false, "RA keys missing in settings");
         }
 
         try
         {
-            // Формуємо запит до офіційного API
-            string url = $"https://retroachievements.org/API/API_GetGameFromContext.php?u={apiUser}&y={apiKey}&c={md5Hash.ToLower()}";
-
-            HttpResponseMessage response = await _httpClient.GetAsync(url);
-            response.EnsureSuccessStatusCode();
-
-            string responseBody = await response.Content.ReadAsStringAsync();
+            // КРОК 1: Звертаємось до Емуляторного API (dorequest.php), яке знає хеші!
+            string hashUrl = $"https://retroachievements.org/dorequest.php?r=gameid&m={md5Hash.ToLower()}";
             
-            if (responseBody.Contains("\"GameID\":0") || responseBody.Contains("Game not found"))
+            HttpResponseMessage hashResponse = await _httpClient.GetAsync(hashUrl);
+            hashResponse.EnsureSuccessStatusCode();
+            
+            string hashBody = await hashResponse.Content.ReadAsStringAsync();
+            
+            if (string.IsNullOrWhiteSpace(hashBody) || hashBody == "{}"  || hashBody.Contains("\"GameID\":0"))
             {
-                return (false, "Not Supported by RA");
+                return (false, "Hash not found in RA Database");
             }
-
-            using JsonDocument doc = JsonDocument.Parse(responseBody);
-            string title = doc.RootElement.GetProperty("GameTitle").GetString() ?? "Unknown Game";
-
-            return (true, title);
+            using JsonDocument hashDoc = JsonDocument.Parse(hashBody);
+            if (!hashDoc.RootElement.TryGetProperty("GameID", out JsonElement gameIdElement))
+            {
+                return (false, "Hash not found in RA Database");
+            }
+            int gameId = gameIdElement.GetInt32();
+            if (gameId == 0) return (false, "Hash not found in RA Database");
+            string gameUrl = $"https://retroachievements.org/API/API_GetGame.php?u={apiUser}&y={apiKey}&i={gameId}";
+            HttpResponseMessage gameResponse = await _httpClient.GetAsync(gameUrl);
+            
+            if (gameResponse.IsSuccessStatusCode)
+            {
+                string gameBody = await gameResponse.Content.ReadAsStringAsync();
+                using JsonDocument gameDoc = JsonDocument.Parse(gameBody);
+                
+                // Витягуємо красиву назву
+                if (gameDoc.RootElement.TryGetProperty("Title", out JsonElement titleElement))
+                {
+                    return (true, titleElement.GetString() ?? $"Game ID: {gameId}");
+                }
+            }
+            
+            return (true, $"Supported (Game ID: {gameId})");
         }
         catch (Exception ex)
         {
