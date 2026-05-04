@@ -2,8 +2,11 @@ using System;
 using System.Text.Json;
 using System.IO;
 using System.Linq;
+using System.Runtime.Intrinsics.Arm;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Padcher2XQ.Models;
+using Padcher2XQ.ViewModels;
 public class HistoryService
 {
     private readonly string _filePath;
@@ -14,7 +17,7 @@ public class HistoryService
         _filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "history.json");
     }
 
-    public async Task AddEntriesAsync(string romPath, string patchPath)
+    public async Task AddEntriesAsync(string? romPath, string patchPath, string crc32, string md5, string sha1)
     {
         var history = await GetHistoryAsync();
 
@@ -22,12 +25,14 @@ public class HistoryService
         {
             var existingRom = history.RomHistory.FirstOrDefault(r => r.RomPath == romPath);
             if (existingRom != null) history.RomHistory.Remove(existingRom);
-            
             history.RomHistory.Insert(0, new RomEntry 
             {
                 RomName = Path.GetFileName(romPath),
                 RomPath = romPath,
-                RomFormat = Path.GetExtension(romPath)
+                RomFormat = Path.GetExtension(romPath),
+                RomCRC32 = crc32,
+                RomMD5 = md5,
+                RomSHA1 = sha1
             });
         }
 
@@ -43,8 +48,6 @@ public class HistoryService
                 PatchFormat = Path.GetExtension(patchPath)
             });
         }
-
-        // 3. Обрізаємо списки, щоб файл не розростався безкінечно
         history.RomHistory = history.RomHistory.Take(MaxEntries).ToList();
         history.PatchHistory = history.PatchHistory.Take(MaxEntries).ToList();
 

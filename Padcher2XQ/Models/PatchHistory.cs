@@ -14,6 +14,9 @@ public class RomEntry
     public string RomName { get; set; } = string.Empty;
     public string RomPath { get; set; } = string.Empty;
     public string RomFormat { get; set; } = string.Empty;
+    public string RomCRC32 { get; set; } = string.Empty;
+    public string RomMD5 { get; set; } = string.Empty;
+    public string RomSHA1 { get; set; } = string.Empty;
 }
 
 public class PatchEntry

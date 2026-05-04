@@ -26,9 +26,9 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private string? _patchPathDisplay; 
     [ObservableProperty] private bool _isMultiPatchMode;
     [ObservableProperty] private ObservableCollection<PatcherHistory> _historyEntries = new();
-    [ObservableProperty] private string _origCrc32 = "---";
-    [ObservableProperty] private string _origMd5 = "---";
-    [ObservableProperty] private string _origSha1 = "---";
+    [ObservableProperty] public string _origCrc32 = "---";
+    [ObservableProperty] public string _origMd5 = "---";
+    [ObservableProperty] public string _origSha1 = "---";
     [ObservableProperty] private string _patchedCrc32 = "---";
     [ObservableProperty] private string _patchedMd5 = "---";
     [ObservableProperty] private string _patchedSha1 = "---";
@@ -53,7 +53,6 @@ public partial class MainWindowViewModel : ViewModelBase
         _patcherService = patcherService;
         _checksumService = checksumService;
         _raService = raService;
-    
         _ = LoadHistoryAsync(); 
     }
     
@@ -102,7 +101,7 @@ public partial class MainWindowViewModel : ViewModelBase
             PatchedCrc32 = c; PatchedMd5 = m; PatchedSha1 = s;
             UpdateStatus("Success! Patches applied.", "Green");
             await CheckRetroAchievementsAsync(m);
-            _historyService.AddEntriesAsync(RomPath, PatchPath);
+            await _historyService.AddEntriesAsync(RomPath, PatchPath, OrigCrc32, OrigMd5, OrigSha1);
             await LoadHistoryAsync();
         }
         catch (Exception ex)
@@ -178,7 +177,16 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (entry == null) return;
         RomPath = entry.RomPath;
-        OnPropertyChanged(nameof(RomPath));
+        OrigCrc32 = entry.RomCRC32 ?? "---";
+        OrigMd5 = entry.RomMD5 ?? "---";
+        OrigSha1 = entry.RomSHA1 ?? "---";
+        PatchedCrc32 = "---"; 
+        PatchedMd5 = "---"; 
+        PatchedSha1 = "---";
+        RaStatus = "Waiting for patch..."; 
+        RaStatusColor = "Gray";
+        UpdateStatus("ROM loaded from History.", "Green");
+        GenerateDefaultOutputPath();
     }
     [RelayCommand]
     public void SelectPatchHistoryItem(PatchEntry entry)
