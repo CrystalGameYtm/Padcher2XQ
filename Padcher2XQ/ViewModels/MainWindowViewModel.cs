@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System;
+using System.Collections.Generic;
 using System.IO.Compression; 
 
 namespace Padcher2XQ.ViewModels;
@@ -66,14 +67,11 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             RomPath = path_rom;
             GenerateDefaultOutputPath();
-            
             PatchedCrc32 = "---"; PatchedMd5 = "---"; PatchedSha1 = "---";
             RaStatus = "Waiting for patch..."; RaStatusColor = "Gray";
-            
             UpdateStatus("Calculating Original Checksums...", "DodgerBlue");
             var (c, m, s) = await _checksumService.CalculateChecksumsAsync(RomPath);
             OrigCrc32 = c; OrigMd5 = m; OrigSha1 = s;
-            
             UpdateStatus("ROM loaded.", "Green");
         }
     }
@@ -194,6 +192,7 @@ public partial class MainWindowViewModel : ViewModelBase
         if (entry == null) return;
         PatchPath = entry.PatchPath;
         OnPropertyChanged(nameof(PatchPath));
+        
     }
     
     // Drag & Drop
@@ -247,7 +246,7 @@ public partial class MainWindowViewModel : ViewModelBase
         var validExtensions = new[] { ".ips", ".bps", ".ups", ".xdelta", ".asm" };
         try
         {
-            await using var archive = ZipFile.OpenRead(zipPath);
+            using var archive = ZipFile.OpenRead(zipPath); // Без await перед using
             
             var patchEntries = archive.Entries
                 .Where(e => validExtensions.Contains(Path.GetExtension(e.FullName).ToLower()))
@@ -258,9 +257,9 @@ public partial class MainWindowViewModel : ViewModelBase
                 UpdateStatus("No valid patches found in ZIP.", "IndianRed");
                 return;
             }
+            
             ZipArchiveEntry? selectedEntry = null;
 
-            string? selectedName;
             if (patchEntries.Count == 1)
             {
                 selectedEntry = patchEntries[0];
@@ -268,9 +267,10 @@ public partial class MainWindowViewModel : ViewModelBase
             else
             {
                 var entryNames = patchEntries.Select(e => e.FullName).ToList();
-                selectedName = _windowService.ShowSelectZip();
+                string? selectedName = await _windowService.ShowSelectZipAsync(entryNames);
                 
                 if (string.IsNullOrEmpty(selectedName)) return; 
+                
                 selectedEntry = patchEntries.First(e => e.FullName == selectedName);
             }
 

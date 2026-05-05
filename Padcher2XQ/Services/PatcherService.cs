@@ -61,7 +61,6 @@ public class PatcherService
                 currentSource = (i % 2 == 0) ? tempFile1 : tempFile2;
                 await PatchSingleFileAsync(currentSource, patchPaths[i], currentTarget, false);
             }
-
             if (File.Exists(finalOutputPath)) File.Delete(finalOutputPath);
             File.Move(currentTarget, finalOutputPath);
             if (restoreInternalChecksum)
@@ -83,7 +82,6 @@ public class PatcherService
             try
             {
                 if (!File.Exists(originalRomPath) || !File.Exists(patchedRomPath)) return;
-
                 byte[] origBytes = File.ReadAllBytes(originalRomPath);
                 byte[] patchedBytes = File.ReadAllBytes(patchedRomPath);
                 int headerOffset = (origBytes.Length % 0x400 == 0x200) ? 0x200 : 0;
@@ -102,7 +100,6 @@ public class PatcherService
                         checksumRestored = true;
                     }
                 }
-
                 int hiRomInverse = headerOffset + 0xFFDC;
                 int hiRomCheck = headerOffset + 0xFFDE;
                 if (!checksumRestored && origBytes.Length > hiRomCheck + 1 && patchedBytes.Length > hiRomCheck + 1)
@@ -117,7 +114,6 @@ public class PatcherService
                         checksumRestored = true;
                     }
                 }
-
                 int genCheck = 0x18E;
                 if (!checksumRestored && origBytes.Length > genCheck + 1 && patchedBytes.Length > genCheck + 1)
                 {
@@ -128,7 +124,6 @@ public class PatcherService
                         checksumRestored = true;
                     }
                 }
-
                 if (checksumRestored)
                 {
                     File.WriteAllBytes(patchedRomPath, patchedBytes);
@@ -142,12 +137,9 @@ public class PatcherService
     {
         string asarPath = _settings.Config.AsarPath;
         if (string.IsNullOrWhiteSpace(asarPath)) asarPath = "asar.exe";
-
         if (Path.IsPathRooted(asarPath) && !File.Exists(asarPath))
             throw new FileNotFoundException($"Asar executable not found at: {asarPath}");
-
         File.Copy(romPath, outputPath, true);
-
         var startInfo = new ProcessStartInfo
         {
             FileName = asarPath,
@@ -160,9 +152,7 @@ public class PatcherService
 
         using var process = Process.Start(startInfo);
         if (process == null) throw new Exception("Failed to start Asar process.");
-        
         await process.WaitForExitAsync();
-
         if (process.ExitCode != 0)
         {
             string error = await process.StandardError.ReadToEndAsync();
@@ -176,20 +166,14 @@ public class PatcherService
         {
             byte[] sourceData = File.ReadAllBytes(romPath);
             byte[] patchData = File.ReadAllBytes(patchPath);
-
             if (patchData.Length < 16 || Encoding.ASCII.GetString(patchData, 0, 4) != "UPS1")
                 throw new Exception("Invalid UPS file header.");
-
             int patchOffset = 4;
             ulong sourceSize = DecodeBpsNumber(patchData, ref patchOffset);
             ulong targetSize = DecodeBpsNumber(patchData, ref patchOffset);
-
             byte[] targetData = new byte[targetSize];
-        
             Array.Copy(sourceData, targetData, Math.Min((long)sourceSize, (long)targetSize));
-
             long romOffset = 0;
-
             while (patchOffset < patchData.Length - 12)
             {
                 romOffset += (long)DecodeBpsNumber(patchData, ref patchOffset);
@@ -205,7 +189,6 @@ public class PatcherService
                 }
                 romOffset++;
             }
-
             File.WriteAllBytes(outputPath, targetData);
         });
     }
@@ -226,12 +209,9 @@ public class PatcherService
             UseShellExecute = false,
             CreateNoWindow = true
         };
-
         using var process = Process.Start(startInfo);
         if (process == null) throw new Exception("Failed to start xdelta3 process.");
-        
         await process.WaitForExitAsync();
-
         if (process.ExitCode != 0)
         {
             string error = await process.StandardError.ReadToEndAsync();
@@ -239,37 +219,30 @@ public class PatcherService
             throw new Exception($"Xdelta Error (Code {process.ExitCode}): {error}");
         }
     }
-
     public async Task ApplyIpsPatchAsync(string romPath, string patchPath, string outputPath)
     {
         await Task.Run(() =>
         {
             File.Copy(romPath, outputPath, true);
-
             using var patchStream = new FileStream(patchPath, FileMode.Open, FileAccess.Read);
             using var outputStream = new FileStream(outputPath, FileMode.Open, FileAccess.Write);
             using var reader = new BinaryReader(patchStream);
             using var writer = new BinaryWriter(outputStream);
-
             byte[] header = reader.ReadBytes(5);
             if (Encoding.ASCII.GetString(header) != "PATCH")
                 throw new Exception("Invalid IPS file header.");
-
             while (patchStream.Position < patchStream.Length)
             {
                 byte[] offsetBytes = reader.ReadBytes(3);
                 
                 if (Encoding.ASCII.GetString(offsetBytes) == "EOF")
                     break;
-
                 int offset = (offsetBytes[0] << 16) | (offsetBytes[1] << 8) | offsetBytes[2];
                 ushort size = (ushort)((reader.ReadByte() << 8) | reader.ReadByte());
-
-                if (size == 0) // RLE Encoding
+                if (size == 0)
                 {
                     ushort rleSize = (ushort)((reader.ReadByte() << 8) | reader.ReadByte());
                     byte rleByte = reader.ReadByte();
-
                     outputStream.Seek(offset, SeekOrigin.Begin);
                     for (int i = 0; i < rleSize; i++)
                     {
@@ -285,35 +258,29 @@ public class PatcherService
             }
         });
     }
+    
    public async Task ApplyBpsPatchAsync(string romPath, string patchPath, string outputPath)
 {
     await Task.Run(() =>
     {
         byte[] sourceData = File.ReadAllBytes(romPath);
         byte[] patchData = File.ReadAllBytes(patchPath);
-
         if (Encoding.ASCII.GetString(patchData, 0, 4) != "BPS1")
             throw new Exception("Invalid BPS file header.");
-
         int patchOffset = 4;
-
         ulong sourceSize = DecodeBpsNumber(patchData, ref patchOffset);
         ulong targetSize = DecodeBpsNumber(patchData, ref patchOffset);
         ulong metaSize = DecodeBpsNumber(patchData, ref patchOffset);
-
         patchOffset += (int)metaSize;
-
         byte[] targetData = new byte[targetSize];
         int outputOffset = 0;
         int sourceOffset = 0;
         int targetOffset = 0;
-
         while (patchOffset < patchData.Length - 12)
         {
             ulong data = DecodeBpsNumber(patchData, ref patchOffset);
             ulong command = data & 3;
             ulong length = (data >> 2) + 1;
-
             switch (command)
             {
                 case 0: 
@@ -324,7 +291,6 @@ public class PatcherService
                         length--;
                     }
                     break;
-
                 case 1: 
                     while (length > 0)
                     {
@@ -334,7 +300,6 @@ public class PatcherService
                         length--;
                     }
                     break;
-
                 case 2:
                     long dataOffset = (long)DecodeBpsNumber(patchData, ref patchOffset);
                     sourceOffset += (dataOffset & 1) != 0 ? -(int)(dataOffset >> 1) : (int)(dataOffset >> 1);
@@ -362,7 +327,6 @@ public class PatcherService
                     break;
             }
         }
-        
         File.WriteAllBytes(outputPath, targetData);
     });
 }

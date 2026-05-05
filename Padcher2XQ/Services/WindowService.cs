@@ -2,13 +2,16 @@ using Microsoft.Extensions.DependencyInjection;
 using Padcher2XQ.ViewModels;
 using Padcher2XQ.Views;
 using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Padcher2XQ.Services;
 
 public interface IWindowService
 {
     void ShowSettingsWindow();
-    string ShowSelectZip();
+
+    Task<string?> ShowSelectZipAsync(List<string> entries);
 }
 
 public class WindowService(IServiceProvider serviceProvider) : IWindowService
@@ -24,26 +27,24 @@ public class WindowService(IServiceProvider serviceProvider) : IWindowService
             {
                 DataContext = serviceProvider.GetRequiredService<SettingsViewModel>()
             };
-        
             settingsWindow.ShowDialog(mainWindow);
         }
     }
 
-    string IWindowService.ShowSelectZip()
+    public async Task<string?> ShowSelectZipAsync(List<string> entries)
     {
-        var app = serviceProvider.GetRequiredService<App>();
-        var mainWindow = app.GetMainWindow();
-        
-        if (mainWindow is not null)
+        var viewarchive = new SelectZipViewModel(entries);
+        var zipwindow = new SelectZipWindow()
         {
-            var selectZipWindow = new SelectZipWindow
-            {
-                DataContext = serviceProvider.GetRequiredService<SelectZipViewModel>()
-            };
-        
-            selectZipWindow.ShowDialog(mainWindow);
+            DataContext = viewarchive
+        };
+        var mainWindow = (Avalonia.Application.Current?.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+        if (mainWindow != null)
+        {
+            return await zipwindow.ShowDialog<string>(mainWindow);
         }
-
-        return null!;
+        return null;
     }
+
+   
 }

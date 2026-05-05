@@ -11,8 +11,6 @@ namespace Padcher2XQ.Services;
 
 public class FileDialogService : IFileDialogService
 {
-    private IFileDialogService? _fileDialogServiceImplementation;
-
     private Window? GetMainWindow()
     {
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)

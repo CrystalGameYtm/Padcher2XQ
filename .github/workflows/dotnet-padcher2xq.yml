@@ -1,7 +1,7 @@
 name: Padcher CI/CD
 
 env:
-  APP_VERSION: "2.0a" 
+  APP_VERSION: "2.1" 
 
 on:
   push:
