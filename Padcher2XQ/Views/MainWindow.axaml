@@ -3,45 +3,82 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:Padcher2XQ.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="500"
+        xmlns:models="clr-namespace:Padcher2XQ.Models"
+        mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="480"
         x:Class="Padcher2XQ.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         x:CompileBindings="False"
         Title="Padcher2XQ"
-        Width="900" Height="540" CanResize="False"
-        WindowStartupLocation="CenterScreen"
-        DragDrop.AllowDrop="True">
+        Width="900" Height="580" CanResize="False"
+        WindowStartupLocation="CenterScreen">
 
     <Design.DataContext>
         <vm:MainWindowViewModel/>
     </Design.DataContext>
     
-    <Grid Background="Transparent">
+    <Grid Background="Transparent" DragDrop.AllowDrop="True">
         <DockPanel Margin="16">
             <StackPanel Spacing="10">
                 
-                <TextBlock Text="ROM File" FontWeight="SemiBold"/>
-                <Grid ColumnDefinitions="*,Auto">
-                    <TextBox Grid.Column="0" Text="{Binding RomPath}" PlaceholderText="Select a ROM to patch..." VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectRomFileCommand}" ToolTip.Tip="Browse for ROM file"/>
-                </Grid>
-
-                <DockPanel Margin="0,8,0,0">
-                    <TextBlock Text="Patch File(s)" FontWeight="SemiBold" VerticalAlignment="Center" DockPanel.Dock="Left"/>
-                    <CheckBox Content="MultiPatch Mode" IsChecked="{Binding IsMultiPatchMode}" HorizontalAlignment="Right"/>
-                </DockPanel>
+                <TextBlock Text="ROM File" FontWeight="SemiBold"  Margin="0,8,0,0"/>
                 
-                <Grid ColumnDefinitions="*,Auto">
-                    <TextBox Grid.Column="0" Text="{Binding PatchPathDisplay}" PlaceholderText="Select a patch file..." Margin="0,0,8,0" IsReadOnly="True" Focusable="False"/>
-                    <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectPatchFileCommand}" ToolTip.Tip="Browse for patch file(s)"/>
-                </Grid>
+               <Grid ColumnDefinitions="*,Auto">
+    <TextBox Text="{Binding RomPath}" PlaceholderText="Select a ROM to patch...">
+        <TextBox.InnerRightContent>
+            <Button Background="Transparent" BorderThickness="0" Padding="5">
+                <PathIcon Data="M13,3 A9,9 0 0,0 4,12 A9,9 0 0,0 13,21 A9,9 0 0,0 22,12 A9,9 0 0,0 13,3 M12,7 H13.5 V12.25 L17,14.25 L16.25,15.5 L12,13 V7 Z" 
+                          Width="16" Height="16"/>
+                <Button.Flyout>
+                    <MenuFlyout ItemsSource="{Binding RomHistoryEntries}">
+                        <MenuFlyout.ItemContainerTheme>
+                            <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                <Setter Property="Header" Value="{Binding RomName}"/>
+                                <Setter Property="Command" Value="{Binding $parent[Window].DataContext.SelectRomHistoryItemCommand}"/>
+                                <Setter Property="CommandParameter" Value="{Binding}"/>
+                            </ControlTheme>
+                        </MenuFlyout.ItemContainerTheme>
+                    </MenuFlyout>
+                </Button.Flyout>
+            </Button>
+        </TextBox.InnerRightContent>
+    </TextBox>
+    <Button Grid.Column="1" Content="..." Command="{Binding SelectRomFileCommand}"/>
+</Grid>
+                <TextBlock Text="Patch File" FontWeight="SemiBold"  Margin="0,8,0,0"/>
+<Grid ColumnDefinitions="*,Auto" Margin="0,5,0,0">
+    <TextBox Text="{Binding PatchPath}" PlaceholderText="Select a patch file...">
+        <TextBox.InnerRightContent>
+            <Button Background="Transparent" BorderThickness="0" Padding="5">
+                <PathIcon Data="M13,3 A9,9 0 0,0 4,12 A9,9 0 0,0 13,21 A9,9 0 0,0 22,12 A9,9 0 0,0 13,3 M12,7 H13.5 V12.25 L17,14.25 L16.25,15.5 L12,13 V7 Z" 
+                          Width="16" Height="16"/>
+                <Button.Flyout>
+                    <MenuFlyout ItemsSource="{Binding PatchHistoryEntries}">
+                        <MenuFlyout.ItemContainerTheme>
+                            <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                <Setter Property="Header" Value="{Binding PatchName}"/>
+                                <Setter Property="Command" Value="{Binding $parent[Window].DataContext.SelectPatchHistoryItemCommand}"/>
+                                <Setter Property="CommandParameter" Value="{Binding}"/>
+                            </ControlTheme>
+                        </MenuFlyout.ItemContainerTheme>
+                    </MenuFlyout>
+                </Button.Flyout>
+            </Button>
+        </TextBox.InnerRightContent>
+    </TextBox>
+    <Button Grid.Column="1" Content="..." Command="{Binding SelectPatchFileCommand}"/>
+</Grid>
 
                 <TextBlock Text="Output File" FontWeight="SemiBold" Margin="0,8,0,0"/>
                 <Grid ColumnDefinitions="*,Auto">
                     <TextBox Grid.Column="0" Text="{Binding OutputPath}" PlaceholderText="Save as..." VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectOutputFileCommand}" ToolTip.Tip="Select output destination"/>
                 </Grid>
-                
+                <CheckBox Content="Changer Checksum (Breaks RetroAchievements)" 
+                          IsChecked="{Binding FixInternalChecksum}" 
+                          Foreground="Gray"
+                          ToolTip.Tip="Recalculates the internal SNES header checksum. Keep disabled if you want to use RetroAchievements."
+                          Margin="0,10,0,0"/>
+
                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" 
                         BorderThickness="1" 
                         CornerRadius="4" 

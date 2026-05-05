@@ -15,10 +15,28 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        
+        DragDrop.SetAllowDrop(this, true);
+        AddHandler(DragDrop.DragOverEvent,DragOver);
+        AddHandler(DragDrop.DropEvent,Drop);
         AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
     }
-
+    private void DragOver(object? sender, DragEventArgs e) { 
+        e.DragEffects = DragDropEffects.Copy; 
+        e.Handled = true;
+    } 
+    private void Drop(object? sender, DragEventArgs e) { 
+        var files = e.DataTransfer.TryGetFiles();
+        if (files != null) {
+            var filePaths= files
+                .Select(x => x.TryGetLocalPath()?? x.Path.LocalPath)
+                .Where(path => !string.IsNullOrEmpty(path))
+                .ToArray();
+            if (filePaths.Length > 0 && DataContext is MainWindowViewModel vm)
+            {
+                vm.HandleDroppedFiles(filePaths);
+            }
+        } 
+    }   
     private async void OnWindowKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.Key == Key.V)

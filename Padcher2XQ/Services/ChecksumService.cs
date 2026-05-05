@@ -15,7 +15,6 @@ public class ChecksumService
 
     static ChecksumService()
     {
-        // Правильна ініціалізація таблиці в масив
         Crc32Table = new uint[256];
         const uint poly = 0xEDB88320;
         for (uint i = 0; i < 256; i++)
