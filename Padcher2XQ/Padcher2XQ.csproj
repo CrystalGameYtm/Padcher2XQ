@@ -26,6 +26,7 @@
         </PackageReference>
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.5" />
+        <PackageReference Include="Padcher.Core" Version="1.1.0" />
         <PackageReference Include="System.Xml.ReaderWriter" Version="4.3.1" />
     </ItemGroup>
 

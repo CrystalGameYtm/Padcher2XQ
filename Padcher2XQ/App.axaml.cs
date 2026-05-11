@@ -7,12 +7,13 @@ using Padcher2XQ.Services;
 using Padcher2XQ.ViewModels;
 using Padcher2XQ.Views;
 using System;
+using Padcher.Core.Patching;
+using Padcher.Core.RetroAchievements;
 
 namespace Padcher2XQ;
 
 public class App : Application
 {
-
     public new static App? Current => Application.Current as App;
     public IServiceProvider? Services { get; private set; }
 
@@ -24,22 +25,41 @@ public class App : Application
     public override void OnFrameworkInitializationCompleted()
     {
         var services = new ServiceCollection();
+        
         services.AddSingleton<App>(this);
         services.AddSingleton<SettingsService>();
         services.AddSingleton<IWindowService, WindowService>();
         services.AddSingleton<IFileDialogService, FileDialogService>();
-        services.AddSingleton<PatcherService>();
         services.AddSingleton<ChecksumService>();
-        services.AddSingleton<RetroAchievementsService>(); 
+
+        services.AddSingleton<RomPatcher>(sp => 
+        {
+            var settings = sp.GetRequiredService<SettingsService>();
+            return new RomPatcher 
+            { 
+                AsarPath = settings.Config.AsarPath, 
+                XdeltaPath = settings.Config.XdeltaPath 
+            };
+        });
+
+        services.AddSingleton<RaClient>(sp => 
+        {
+            var settings = sp.GetRequiredService<SettingsService>();
+            string user = string.IsNullOrWhiteSpace(settings.Config.RaUser) ? "Guest" : settings.Config.RaUser;
+            string key = string.IsNullOrWhiteSpace(settings.Config.RaApiKey) ? "None" : settings.Config.RaApiKey;
+            
+            return new RaClient(user, key);
+        });
+
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<SettingsViewModel>();
-        var provider = services.BuildServiceProvider();
+        Services = services.BuildServiceProvider();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = new MainWindow
             {
-                DataContext = provider.GetRequiredService<MainWindowViewModel>()
+                DataContext = Services.GetRequiredService<MainWindowViewModel>()
             };
         }
 
