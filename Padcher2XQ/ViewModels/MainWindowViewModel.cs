@@ -259,7 +259,8 @@ public partial class MainWindowViewModel : ViewModelBase
         var validExtensions = new[] { ".ips", ".bps", ".ups", ".xdelta", ".asm" };
         try
         {
-            using var archive = ZipFile.OpenRead(zipPath); 
+            using var archive = ZipFile.OpenRead(zipPath);
+        
             var patchEntries = archive.Entries
                 .Where(e => validExtensions.Contains(Path.GetExtension(e.FullName).ToLower()))
                 .ToList();
@@ -269,36 +270,43 @@ public partial class MainWindowViewModel : ViewModelBase
                 UpdateStatus("No valid patches found in ZIP.", "IndianRed");
                 return;
             }
-            
-            ZipArchiveEntry? selectedEntry = null;
 
             if (patchEntries.Count == 1)
             {
-                selectedEntry = patchEntries[0];
+                ExtractAndAddPatch(patchEntries[0]);
+                UpdateStatus($"Loaded {patchEntries[0].Name} from ZIP.", "LimeGreen");
+                return;
+            }
+
+            var entryNames = patchEntries.Select(e => e.FullName).ToList();
+
+            List<string>? selectedNames = await _windowService.ShowSelectZipAsync(entryNames);
+            if (selectedNames == null || selectedNames.Count == 0) return; 
+
+            if (IsMultiPatchMode)
+            {
+                foreach (var name in selectedNames)
+                {
+                    var entry = patchEntries.First(e => e.FullName == name);
+                    ExtractAndAddPatch(entry);
+                }
+                UpdateStatus($"Loaded {selectedNames.Count} patches from ZIP.", "LimeGreen");
             }
             else
             {
-                var entryNames = patchEntries.Select(e => e.FullName).ToList();
-                string? selectedName = await _windowService.ShowSelectZipAsync(entryNames);
-                
-                if (string.IsNullOrEmpty(selectedName)) return; 
-                
-                selectedEntry = patchEntries.First(e => e.FullName == selectedName);
+                var entry = patchEntries.First(e => e.FullName == selectedNames.First());
+                ExtractAndAddPatch(entry);
+                UpdateStatus($"Loaded {entry.Name} from ZIP.", "LimeGreen");
             }
-
-            string extractPath = Path.Combine(Path.GetTempPath(), selectedEntry.Name);
-            
-            selectedEntry.ExtractToFile(extractPath, overwrite: true);
-
-            AddPatchToList(extractPath);
-            UpdateStatus($"Loaded {selectedEntry.Name} from ZIP.", "LimeGreen");
         }
         catch (Exception ex)
         {
             UpdateStatus($"ZIP Error: {ex.Message}", "Red");
         }
     }
-    
+
+// Допоміжний метод для чистоти коду
+
     //Utils
    
     private async Task CheckRetroAchievementsAsync(string md5)
@@ -317,7 +325,12 @@ public partial class MainWindowViewModel : ViewModelBase
             RaStatusColor = "IndianRed";
         }
     }
-    
+    private void ExtractAndAddPatch(ZipArchiveEntry entry)
+    {
+        string extractPath = Path.Combine(Path.GetTempPath(), entry.Name);
+        entry.ExtractToFile(extractPath, overwrite: true);
+        AddPatchToList(extractPath);
+    }
     private void UpdateStatus(string message, string color)
     {
         StatusMessage = message;
@@ -325,6 +338,7 @@ public partial class MainWindowViewModel : ViewModelBase
     }
     [RelayCommand]
     private void OpenSettings() => _windowService.ShowSettingsWindow();
+    
     // Launcher Mover
     [RelayCommand]
     private void MovePatchUp(PatchItemViewModel item)
