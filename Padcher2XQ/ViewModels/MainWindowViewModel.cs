@@ -20,7 +20,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly PatcherService _patcherService;
     private readonly ChecksumService _checksumService;
     private readonly RetroAchievementsService _raService; 
-    public ObservableCollection<string> SelectedPatches { get; } = new();
+    public ObservableCollection<PatchItemViewModel> SelectedPatches { get; } = new();
     [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))] private string? _romPath;
     [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))] private string? _patchPath;
     [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))] private string? _outputPath;
@@ -92,9 +92,14 @@ public partial class MainWindowViewModel : ViewModelBase
         try
         {
             if (IsMultiPatchMode)
-                await _patcherService.ApplyMultiplePatchesAsync(RomPath!, SelectedPatches.ToList(), OutputPath!, FixInternalChecksum);
+            {
+                var activePatches = SelectedPatches.Where(p => p.IsEnabled).Select(p => p.FilePath).ToList();
+                await _patcherService.ApplyMultiplePatchesAsync(RomPath!, activePatches, OutputPath!, FixInternalChecksum);
+            }
             else
+            {
                 await _patcherService.PatchSingleFileAsync(RomPath!, PatchPath!, OutputPath!, FixInternalChecksum);
+            }
             var (c, m, s) = await _checksumService.CalculateChecksumsAsync(OutputPath!);
             PatchedCrc32 = c; PatchedMd5 = m; PatchedSha1 = s;
             UpdateStatus("Success! Patches applied.", "Green");
@@ -230,7 +235,15 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (IsMultiPatchMode)
         {
-            if (!SelectedPatches.Contains(file)) SelectedPatches.Add(file);
+            if (!SelectedPatches.Any(p => p.FilePath == file))
+            {
+                SelectedPatches.Add(new PatchItemViewModel
+                {
+                    FilePath = file,
+                    PatchName = Path.GetFileName(file),
+                    Format = Path.GetExtension(file).TrimStart('.').ToUpper()
+                });
+            }
             PatchPathDisplay = $"{SelectedPatches.Count} patches selected";
         }
         else
@@ -246,8 +259,7 @@ public partial class MainWindowViewModel : ViewModelBase
         var validExtensions = new[] { ".ips", ".bps", ".ups", ".xdelta", ".asm" };
         try
         {
-            using var archive = ZipFile.OpenRead(zipPath); // Без await перед using
-            
+            using var archive = ZipFile.OpenRead(zipPath); 
             var patchEntries = archive.Entries
                 .Where(e => validExtensions.Contains(Path.GetExtension(e.FullName).ToLower()))
                 .ToList();
@@ -313,4 +325,25 @@ public partial class MainWindowViewModel : ViewModelBase
     }
     [RelayCommand]
     private void OpenSettings() => _windowService.ShowSettingsWindow();
+    // Launcher Mover
+    [RelayCommand]
+    private void MovePatchUp(PatchItemViewModel item)
+    {
+        int index = SelectedPatches.IndexOf(item);
+        if (index > 0) SelectedPatches.Move(index, index - 1);
+    }
+
+    [RelayCommand]
+    private void MovePatchDown(PatchItemViewModel item)
+    {
+        int index = SelectedPatches.IndexOf(item);
+        if (index >= 0 && index < SelectedPatches.Count - 1) SelectedPatches.Move(index, index + 1);
+    }
+
+    [RelayCommand]
+    private void RemovePatch(PatchItemViewModel item)
+    {
+        SelectedPatches.Remove(item);
+        ApplyPatchCommand.NotifyCanExecuteChanged();
+    }
 }
