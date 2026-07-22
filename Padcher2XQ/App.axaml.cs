@@ -12,6 +12,7 @@ namespace Padcher2XQ;
 
 public class App : Application
 {
+
     public new static App? Current => Application.Current as App;
     public IServiceProvider? Services { get; private set; }
 
@@ -30,18 +31,15 @@ public class App : Application
         services.AddSingleton<PatcherService>();
         services.AddSingleton<ChecksumService>();
         services.AddSingleton<RetroAchievementsService>(); 
-        
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<SettingsViewModel>();
-        
-        Services = services.BuildServiceProvider();
+        var provider = services.BuildServiceProvider();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = new MainWindow
             {
-                // Використовуємо наш збережений Services для отримання ViewModel
-                DataContext = Services.GetRequiredService<MainWindowViewModel>()
+                DataContext = provider.GetRequiredService<MainWindowViewModel>()
             };
         }
 
