@@ -1,87 +1,97 @@
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Input.Platform; 
+using Avalonia.Interactivity;
+using Avalonia.Platform.Storage; 
+using Padcher2XQ.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Avalonia.Controls;
-using Avalonia.Input;
-using Padcher2XQ.ViewModels;
-using Padcher2XQ.Models;
+
 namespace Padcher2XQ.Views;
 
 public partial class MainWindow : Window
 {
-    private PatchItemViewModel? _draggedItem;
-
     public MainWindow()
     {
         InitializeComponent();
+        DragDrop.SetAllowDrop(this, true);
+        AddHandler(DragDrop.DragOverEvent,DragOver);
+        AddHandler(DragDrop.DropEvent,Drop);
+        AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
     }
-
-    private async void Window_Drop(object? sender, DragEventArgs e)
-    {
-        try
-        {
-            var items = e.DataTransfer.TryGetFiles();
-
-            if (items != null)
+    private void DragOver(object? sender, DragEventArgs e) { 
+        e.DragEffects = DragDropEffects.Copy; 
+        e.Handled = true;
+    } 
+    private void Drop(object? sender, DragEventArgs e) { 
+        var files = e.DataTransfer.TryGetFiles();
+        if (files != null) {
+            var filePaths= files
+                .Select(x => x.TryGetLocalPath()?? x.Path.LocalPath)
+                .Where(path => !string.IsNullOrEmpty(path))
+                .ToArray();
+            if (filePaths.Length > 0 && DataContext is MainWindowViewModel vm)
             {
-                var pathList = new List<string>();
-                foreach (var item in items)
+                vm.HandleDroppedFiles(filePaths);
+            }
+        } 
+    }   
+    private async void OnWindowKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.Key == Key.V)
+        {
+            var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+            if (clipboard == null) return;
+
+            var filePaths = new List<string>();
+
+            try
+            {
+                var files = await clipboard.TryGetFilesAsync();
+                if (files != null)
                 {
-                    if (item?.Path != null && !string.IsNullOrEmpty(item.Path.LocalPath))
+                    filePaths.AddRange(files
+                        .Select(x => x.TryGetLocalPath())
+                        .Where(x => !string.IsNullOrEmpty(x))
+                        .Cast<string>());
+                }
+
+                if (filePaths.Count == 0)
+                {
+                    string? text = await clipboard.TryGetTextAsync();
+                    
+                    if (!string.IsNullOrWhiteSpace(text))
                     {
-                        pathList.Add(item.Path.LocalPath);
+                        var parsedPaths = text
+                            .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(line => line.Trim())
+                            .Select(line => 
+                            {
+                                if (line == "copy" || line == "cut") return null; 
+                                
+                                var path = line.Trim('"');
+                                if (path.StartsWith("file://"))
+                                    return Uri.UnescapeDataString(path.Replace("file://", ""));
+                                return path;
+                            })
+                            .Where(path => !string.IsNullOrEmpty(path) && System.IO.File.Exists(path))
+                            .Cast<string>();
+                        
+                        filePaths.AddRange(parsedPaths);
                     }
                 }
 
-                if (pathList.Count > 0 && DataContext is MainWindowViewModel vm)
+                if (filePaths.Count > 0 && DataContext is MainWindowViewModel vm)
                 {
-                    await vm.HandleDroppedFiles(pathList.ToArray());
+                    e.Handled = true;   
+                    vm.HandleDroppedFiles(filePaths.ToArray());
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Drop Error: {ex.Message}");
-        }
-    }
-
-    private void Item_PointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        // Затискаємо ліву кнопку миші на патчі
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed &&
-            sender is Control control && control.DataContext is PatchItemViewModel item)
-        {
-            _draggedItem = item;
-        }
-    }
-
-    private void Item_PointerMoved(object? sender, PointerEventArgs e)
-    {
-        if (_draggedItem != null && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
-        {
-            var topLevel = TopLevel.GetTopLevel(this);
-            if (topLevel != null)
+            catch (Exception ex)
             {
-                var hitControl = topLevel.InputHitTest(e.GetPosition(topLevel)) as Control;
-            
-                if (hitControl?.DataContext is PatchItemViewModel targetItem && targetItem != _draggedItem)
-                {
-                    if (DataContext is MainWindowViewModel vm)
-                    {
-                        int sourceIndex = vm.SelectedPatches.IndexOf(_draggedItem);
-                        int targetIndex = vm.SelectedPatches.IndexOf(targetItem);
-                        if (sourceIndex >= 0 && targetIndex >= 0)
-                        {
-                            vm.SelectedPatches.Move(sourceIndex, targetIndex);
-                        }
-                    }
-                }
+                Console.WriteLine($"Clipboard error: {ex.Message}");
             }
         }
-    }
-
-    private void Item_PointerReleased(object? sender, PointerReleasedEventArgs e)
-    {
-        _draggedItem = null;
     }
 }
