@@ -6,6 +6,10 @@
         <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+        <PublishTrimmed>true</PublishTrimmed>
+        <TrimMode>link</TrimMode>
+        <PublishSingleFile>true</PublishSingleFile>
+        <DebuggerSupport>false</DebuggerSupport>
     </PropertyGroup>
 
     <ItemGroup>
@@ -24,6 +28,7 @@
             <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
             <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
         </PackageReference>
+        <PackageReference Include="Avalonia.Wayland" Version="12.1.0" />
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
         <PackageReference Include="System.Xml.ReaderWriter" Version="4.3.1" />

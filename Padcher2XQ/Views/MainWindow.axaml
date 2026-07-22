@@ -3,30 +3,32 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:Padcher2XQ.ViewModels"
-        xmlns:models="clr-namespace:Padcher2XQ.Models"
         mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="600"
         x:Class="Padcher2XQ.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         x:CompileBindings="False"
         Title="Padcher2XQ"
-        Width="900" Height="620" CanResize="True"
+        Width="900" Height="620" MinHeight="580" CanResize="True"
         WindowStartupLocation="CenterScreen">
 
     <Design.DataContext>
         <vm:MainWindowViewModel/>
     </Design.DataContext>
-    
-    <Grid Background="Transparent" DragDrop.AllowDrop="True">
+    <ScrollViewer VerticalScrollBarVisibility="Hidden"
+                  HorizontalScrollBarVisibility="Disabled">
+    <Grid Background="Transparent" 
+          DragDrop.AllowDrop="True" 
+          DragDrop.Drop="Window_Drop">
         <DockPanel Margin="16">
             <StackPanel Spacing="10">
                 
+                <!-- ROM FILE -->
                 <TextBlock Text="ROM File" FontWeight="SemiBold" Margin="0,8,0,0"/>
                 <Grid ColumnDefinitions="*,Auto">
                     <TextBox Text="{Binding RomPath}" PlaceholderText="Select a ROM to patch...">
                         <TextBox.InnerRightContent>
                             <Button Background="Transparent" BorderThickness="0" Padding="5">
-                                <PathIcon Data="M13,3 A9,9 0 0,0 4,12 A9,9 0 0,0 13,21 A9,9 0 0,0 22,12 A9,9 0 0,0 13,3 M12,7 H13.5 V12.25 L17,14.25 L16.25,15.5 L12,13 V7 Z" 
-                                          Width="16" Height="16"/>
+                                <PathIcon Data="M13,3 A9,9 0 0,0 4,12 A9,9 0 0,0 13,21 A9,9 0 0,0 22,12 A9,9 0 0,0 13,3 M12,7 H13.5 V12.25 L17,14.25 L16.25,15.5 L12,13 V7 Z" Width="16" Height="16"/>
                                 <Button.Flyout>
                                     <MenuFlyout ItemsSource="{Binding RomHistoryEntries}">
                                         <MenuFlyout.ItemContainerTheme>
@@ -44,6 +46,7 @@
                     <Button Grid.Column="1" Content="..." Command="{Binding SelectRomFileCommand}"/>
                 </Grid>
 
+                <!-- SWITCH MODE -->
                 <Grid ColumnDefinitions="*, Auto" Margin="0,8,0,0">
                     <TextBlock Text="Patch File(s)" FontWeight="SemiBold" VerticalAlignment="Center"/>
                     <ToggleSwitch Grid.Column="1" IsChecked="{Binding IsMultiPatchMode}" 
@@ -51,12 +54,12 @@
                                   Margin="0,0,0,0" VerticalAlignment="Center"/>
                 </Grid>
 
+                <!-- SINGLE PATCH MODE -->
                 <Grid ColumnDefinitions="*,Auto" Margin="0,5,0,0" IsVisible="{Binding !IsMultiPatchMode}">
                     <TextBox Text="{Binding PatchPath}" PlaceholderText="Select a patch file...">
                         <TextBox.InnerRightContent>
                             <Button Background="Transparent" BorderThickness="0" Padding="5">
-                                <PathIcon Data="M13,3 A9,9 0 0,0 4,12 A9,9 0 0,0 13,21 A9,9 0 0,0 22,12 A9,9 0 0,0 13,3 M12,7 H13.5 V12.25 L17,14.25 L16.25,15.5 L12,13 V7 Z" 
-                                          Width="16" Height="16"/>
+                                <PathIcon Data="M13,3 A9,9 0 0,0 4,12 A9,9 0 0,0 13,21 A9,9 0 0,0 22,12 A9,9 0 0,0 13,3 M12,7 H13.5 V12.25 L17,14.25 L16.25,15.5 L12,13 V7 Z" Width="16" Height="16"/>
                                 <Button.Flyout>
                                     <MenuFlyout ItemsSource="{Binding PatchHistoryEntries}">
                                         <MenuFlyout.ItemContainerTheme>
@@ -74,37 +77,41 @@
                     <Button Grid.Column="1" Content="..." Command="{Binding SelectPatchFileCommand}"/>
                 </Grid>
 
+                <!-- MULTI PATCH MODE -->
                 <Grid RowDefinitions="*,Auto" Margin="0,5,0,0" IsVisible="{Binding IsMultiPatchMode}">
                     <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" 
-                            BorderThickness="1" CornerRadius="4" MinHeight="100" MaxHeight="140">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <ListBox ItemsSource="{Binding SelectedPatches}" Background="Transparent" Padding="0">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <Grid ColumnDefinitions="Auto, *, Auto, Auto" Margin="5,2">
-                                            <CheckBox Grid.Column="0" IsChecked="{Binding IsEnabled}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                            
-                                            <TextBlock Grid.Column="1" Text="{Binding PatchName}" VerticalAlignment="Center" FontWeight="Medium" TextTrimming="CharacterEllipsis"/>
-                                            
-                                            <Border Grid.Column="2" Background="{DynamicResource SystemControlBackgroundBaseLowBrush}" 
-                                                    CornerRadius="4" Padding="6,2" Margin="0,0,10,0" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding Format}" FontSize="11" FontWeight="Bold" Foreground="Gray"/>
-                                            </Border>
-                                            
-                                            <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4">
-                                                <Button Content="↑" Command="{Binding $parent[Window].DataContext.MovePatchUpCommand}" CommandParameter="{Binding}" Padding="8,4" ToolTip.Tip="Move Up"/>
-                                                <Button Content="↓" Command="{Binding $parent[Window].DataContext.MovePatchDownCommand}" CommandParameter="{Binding}" Padding="8,4" ToolTip.Tip="Move Down"/>
-                                                <Button Content="✕" Command="{Binding $parent[Window].DataContext.RemovePatchCommand}" CommandParameter="{Binding}" Foreground="IndianRed" Padding="8,4" ToolTip.Tip="Remove"/>
-                                            </StackPanel>
-                                        </Grid>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                        </ScrollViewer>
+                            BorderThickness="1" CornerRadius="4" MinHeight="100" MaxHeight="150">
+                        
+                        <ListBox ItemsSource="{Binding SelectedPatches}" Background="Transparent" Padding="0">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid ColumnDefinitions="Auto, *, Auto, Auto" Margin="5,2"
+                                          Background="Transparent"
+                                          PointerPressed="Item_PointerPressed"
+                                          PointerMoved="Item_PointerMoved"
+                                          PointerReleased="Item_PointerReleased">
+        
+                                        <CheckBox Grid.Column="0" IsChecked="{Binding IsEnabled}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding PatchName}" VerticalAlignment="Center" FontWeight="Medium" TextTrimming="CharacterEllipsis"/>
+        
+                                        <Border Grid.Column="2" Background="{DynamicResource SystemControlBackgroundBaseLowBrush}" CornerRadius="4" Padding="6,2" Margin="0,0,10,0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Format}" FontSize="11" FontWeight="Bold" Foreground="Gray"/>
+                                        </Border>
+        
+                                        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4">
+                                            <Button Content="↑" Command="{Binding $parent[Window].DataContext.MovePatchUpCommand}" CommandParameter="{Binding}" Padding="8,4" ToolTip.Tip="Move Up"/>
+                                            <Button Content="↓" Command="{Binding $parent[Window].DataContext.MovePatchDownCommand}" CommandParameter="{Binding}" Padding="8,4" ToolTip.Tip="Move Down"/>
+                                            <Button Content="✕" Command="{Binding $parent[Window].DataContext.RemovePatchCommand}" CommandParameter="{Binding}" Foreground="IndianRed" Padding="8,4" ToolTip.Tip="Remove"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
                     </Border>
                     <Button Grid.Row="1" Content="Add Patches..." Command="{Binding SelectPatchFileCommand}" HorizontalAlignment="Stretch" Margin="0,8,0,0"/>
                 </Grid>
 
+                <!-- OUTPUT FILE -->
                 <TextBlock Text="Output File" FontWeight="SemiBold" Margin="0,8,0,0"/>
                 <Grid ColumnDefinitions="*,Auto">
                     <TextBox Grid.Column="0" Text="{Binding OutputPath}" PlaceholderText="Save as..." VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -114,14 +121,12 @@
                 <CheckBox Content="Changer Checksum (Breaks RetroAchievements)" 
                           IsChecked="{Binding FixInternalChecksum}" 
                           Foreground="Gray"
-                          ToolTip.Tip="Recalculates the internal SNES header checksum. Keep disabled if you want to use RetroAchievements."
+                          ToolTip.Tip="Recalculates the internal SNES header checksum."
                           Margin="0,10,0,0"/>
 
+                <!-- HASHES PANEL -->
                 <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" 
-                        BorderThickness="1" 
-                        CornerRadius="4" 
-                        Padding="12" 
-                        Margin="0,12,0,0">
+                        BorderThickness="1" CornerRadius="4" Padding="12" Margin="0,12,0,0">
                     <StackPanel Spacing="10">
                         <Grid ColumnDefinitions="*,*">
                             <StackPanel Grid.Column="0" Spacing="4">
@@ -157,35 +162,20 @@
                         </DockPanel>
                     </StackPanel>
                 </Border>
-           
-                <Button Content="Apply Patch" 
-                        Classes="accent"
-                        FontWeight="Bold" 
-                        Height="45" 
-                        Command="{Binding ApplyPatchCommand}" 
-                        HorizontalAlignment="Stretch" 
-                        HorizontalContentAlignment="Center"
-                        VerticalContentAlignment="Center"
-                        Margin="0,16,0,0"/>
 
-                <TextBlock Text="{Binding StatusMessage}" 
-                           Foreground="{Binding StatusMessageColor}"
-                           FontWeight="SemiBold"
-                           HorizontalAlignment="Center"
-                           TextWrapping="Wrap"
-                           Margin="0,12,0,0"/>
+                <Button Content="Apply Patch" Classes="accent" FontWeight="Bold" Height="45" 
+                        Command="{Binding ApplyPatchCommand}" HorizontalAlignment="Stretch" 
+                        HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="0,16,0,0"/>
+
+                <TextBlock Text="{Binding StatusMessage}" Foreground="{Binding StatusMessageColor}" 
+                           FontWeight="SemiBold" HorizontalAlignment="Center" TextWrapping="Wrap" Margin="0,12,0,0"/>
             </StackPanel>
         </DockPanel>
 
-        <Button Command="{Binding OpenSettingsCommand}"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Top"
-                Margin="0,8,8,0"
-                Width="40" Height="32"
-                CornerRadius="16"
-                Background="Transparent"
-                ToolTip.Tip="Open Settings">
+        <Button Command="{Binding OpenSettingsCommand}" HorizontalAlignment="Right" VerticalAlignment="Top" 
+                Margin="0,8,8,0" Width="40" Height="32" CornerRadius="16" Background="Transparent" ToolTip.Tip="Open Settings">
             <TextBlock Text="⚙" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Button>
     </Grid>
+        </ScrollViewer> 
 </Window>
