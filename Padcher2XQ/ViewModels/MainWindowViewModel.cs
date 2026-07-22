@@ -280,7 +280,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
             var entryNames = patchEntries.Select(e => e.FullName).ToList();
 
-            List<string>? selectedNames = await _windowService.ShowSelectZipAsync(entryNames);
+            List<string>? selectedNames = await _windowService.ShowSelectZipAsync(entryNames, IsMultiPatchMode);
             if (selectedNames == null || selectedNames.Count == 0) return; 
 
             if (IsMultiPatchMode)

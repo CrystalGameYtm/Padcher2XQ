@@ -10,7 +10,7 @@ namespace Padcher2XQ.Services;
 public interface IWindowService
 {
     void ShowSettingsWindow();
-    Task<List<string>?> ShowSelectZipAsync(List<string> entries);
+    Task<List<string>?> ShowSelectZipAsync(List<string> entries, bool isMultiMode);
 }
 
 public class WindowService(IServiceProvider serviceProvider) : IWindowService
@@ -30,12 +30,12 @@ public class WindowService(IServiceProvider serviceProvider) : IWindowService
         }
     }
 
-    public async Task<List<string>?> ShowSelectZipAsync(List<string> entries)
+    public async Task<List<string>?> ShowSelectZipAsync(List<string> entries, bool isMultiMode)
     {
-        var viewarchive = new SelectZipViewModel(entries);
+        var viewarchive = new SelectZipViewModel(entries, isMultiMode);
         var zipwindow = new SelectZipWindow() { DataContext = viewarchive };
+    
         var mainWindow = (Avalonia.Application.Current?.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-        
         if (mainWindow != null)
         {
             return await zipwindow.ShowDialog<List<string>?>(mainWindow);

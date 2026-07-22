@@ -106,6 +106,7 @@ class Program
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
+            .UseWayland()
             .WithInterFont()
             .LogToTrace();
 }
