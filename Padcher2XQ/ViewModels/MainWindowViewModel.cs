@@ -33,7 +33,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private string _patchedCrc32 = "---";
     [ObservableProperty] private string _patchedMd5 = "---";
     [ObservableProperty] private string _patchedSha1 = "---";
-    [ObservableProperty] private Func<Task> _loadHistory;
+    [ObservableProperty] private Func<Task>? _loadHistory;
     [ObservableProperty] private string _raStatus = "Waiting for patch...";
     [ObservableProperty] private string _raStatusColor = "Gray";
     public ObservableCollection<RomEntry> RomHistoryEntries { get; } = new();
@@ -103,8 +103,8 @@ public partial class MainWindowViewModel : ViewModelBase
             var (c, m, s) = await _checksumService.CalculateChecksumsAsync(OutputPath!);
             PatchedCrc32 = c; PatchedMd5 = m; PatchedSha1 = s;
             UpdateStatus("Success! Patches applied.", "Green");
-            await CheckRetroAchievementsAsync(m);
-            await _historyService.AddEntriesAsync(RomPath, PatchPath, OrigCrc32, OrigMd5, OrigSha1);
+            await CheckRetroAchievementsAsync(m);   
+            await _historyService.AddEntriesAsync(RomPath, PatchPath ?? "MultiPatch Queue", OrigCrc32, OrigMd5, OrigSha1);
             await LoadHistoryAsync();
         }
         catch (Exception ex)
@@ -202,10 +202,12 @@ public partial class MainWindowViewModel : ViewModelBase
     
     // Drag & Drop
     
-    public void HandleDroppedFiles(string[] files)
+    // Зміни void на async Task
+    public async Task HandleDroppedFiles(string[] files)
     {
         var romExtensions = new[] { ".nes", ".iso", ".gen", ".n64", ".gbc", ".md", ".z64", ".sfc", ".smc", ".bin", ".gba", ".nds" };
         var patchExtensions = new[] { ".ips", ".bps", ".ups", ".xdelta", ".asm" };
+
         foreach (var file in files)
         {
             var ext = Path.GetExtension(file).ToLower();
@@ -217,13 +219,14 @@ public partial class MainWindowViewModel : ViewModelBase
                 PatchedCrc32 = "---"; PatchedMd5 = "---"; PatchedSha1 = "---";
                 RaStatus = "Waiting for patch..."; RaStatusColor = "Gray";
                 UpdateStatus("Calculating Original Checksums...", "DodgerBlue");
-                var (c, m, s) = _checksumService.CalculateChecksumsAsync(RomPath).Result; 
+                var (c, m, s) = await _checksumService.CalculateChecksumsAsync(RomPath); 
+            
                 OrigCrc32 = c; OrigMd5 = m; OrigSha1 = s;
                 UpdateStatus("ROM loaded via Drag&Drop.", "Green");
             }
             else if (ext == ".zip") 
             {
-                _ = HandleZipFileAsync(file);
+                await HandleZipFileAsync(file);
             }
             else if (patchExtensions.Contains(ext))
             {
