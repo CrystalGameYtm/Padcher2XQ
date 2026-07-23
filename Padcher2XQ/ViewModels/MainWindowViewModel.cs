@@ -163,6 +163,43 @@ public partial class MainWindowViewModel : ViewModelBase
         OutputPath = Path.Combine(dir, $"{name}{ext}");
     }
     
+    //Multipatch Session
+    
+    private readonly ProfileService _profileService = new();
+
+    public async Task InitializeAsync()
+    {
+        var lastSession = await _profileService.LoadLastSessionAsync();
+        if (lastSession != null && lastSession.Count > 0)
+        {
+            SelectedPatches.Clear();
+            foreach (var item in lastSession)
+            {
+                if (File.Exists(item.Path))
+                {
+                    SelectedPatches.Add(new PatchItemViewModel
+                    {
+                        FilePath = item.Path,
+                        PatchName = Path.GetFileName(item.Path),
+                        IsEnabled = item.IsEnabled,
+                        Format = Path.GetExtension(item.Path).TrimStart('.').ToUpper()
+                    });
+                }
+            }
+        }
+    }
+
+    public async void AutoSaveSession()
+    {
+        var items = SelectedPatches.Select(p => new PatchProfileItem
+        {
+            Path = p.FilePath,
+            IsEnabled = p.IsEnabled
+        });
+
+        await _profileService.SaveLastSessionAsync(items);
+    }
+    
     //Rom & Patcher History 
     
     public async Task LoadHistoryAsync()
@@ -202,7 +239,6 @@ public partial class MainWindowViewModel : ViewModelBase
     
     // Drag & Drop
     
-    // Зміни void на async Task
     public async Task HandleDroppedFiles(string[] files)
     {
         var romExtensions = new[] { ".nes", ".iso", ".gen", ".n64", ".gbc", ".md", ".z64", ".sfc", ".smc", ".bin", ".gba", ".nds" };
@@ -307,8 +343,6 @@ public partial class MainWindowViewModel : ViewModelBase
             UpdateStatus($"ZIP Error: {ex.Message}", "Red");
         }
     }
-
-// Допоміжний метод для чистоти коду
 
     //Utils
    
