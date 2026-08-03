@@ -293,56 +293,72 @@ public partial class MainWindowViewModel : ViewModelBase
         GenerateDefaultOutputPath();
         ApplyPatchCommand.NotifyCanExecuteChanged();
     }
-    private async Task HandleZipFileAsync(string zipPath)
+
+   private async Task HandleZipFileAsync(string zipPath)
+{
+    var validExtensions = new[] { ".ips", ".bps", ".ups", ".xdelta", ".asm" };
+    try
     {
-        var validExtensions = new[] { ".ips", ".bps", ".ups", ".xdelta", ".asm" };
-        try
+        using var archive = ZipFile.OpenRead(zipPath);
+        var patchEntries = archive.Entries
+            .Where(e => validExtensions.Contains(Path.GetExtension(e.FullName).ToLower()))
+            .ToList();
+
+        if (patchEntries.Count == 0)
         {
-            using var archive = ZipFile.OpenRead(zipPath);
-        
-            var patchEntries = archive.Entries
-                .Where(e => validExtensions.Contains(Path.GetExtension(e.FullName).ToLower()))
-                .ToList();
-
-            if (patchEntries.Count == 0)
-            {
-                UpdateStatus("No valid patches found in ZIP.", "IndianRed");
-                return;
-            }
-
-            if (patchEntries.Count == 1)
-            {
-                ExtractAndAddPatch(patchEntries[0]);
-                UpdateStatus($"Loaded {patchEntries[0].Name} from ZIP.", "LimeGreen");
-                return;
-            }
-
-            var entryNames = patchEntries.Select(e => e.FullName).ToList();
-
-            List<string>? selectedNames = await _windowService.ShowSelectZipAsync(entryNames, IsMultiPatchMode);
-            if (selectedNames == null || selectedNames.Count == 0) return; 
-
-            if (IsMultiPatchMode)
-            {
-                foreach (var name in selectedNames)
-                {
-                    var entry = patchEntries.First(e => e.FullName == name);
-                    ExtractAndAddPatch(entry);
-                }
-                UpdateStatus($"Loaded {selectedNames.Count} patches from ZIP.", "LimeGreen");
-            }
-            else
-            {
-                var entry = patchEntries.First(e => e.FullName == selectedNames.First());
-                ExtractAndAddPatch(entry);
-                UpdateStatus($"Loaded {entry.Name} from ZIP.", "LimeGreen");
-            }
+            UpdateStatus("No valid patches found in ZIP.", "IndianRed");
+            return;
         }
-        catch (Exception ex)
+
+        var entryNames = patchEntries.Select(e => e.FullName).ToList();
+
+        if (IsMultiPatchMode)
         {
-            UpdateStatus($"ZIP Error: {ex.Message}", "Red");
+            var multiResults = await _windowService.ShowSelectZipMultiAsync(entryNames);
+            if (multiResults == null || multiResults.Count == 0) return;
+
+            foreach (var res in multiResults)
+            {
+                var entry = patchEntries.First(e => e.FullName == res.FullName);
+                
+                string tempFolder = Path.Combine(Path.GetTempPath(), "Padcher2XQ_Temp", Guid.NewGuid().ToString());
+                Directory.CreateDirectory(tempFolder);
+                string destinationPath = Path.Combine(tempFolder, entry.Name);
+                entry.ExtractToFile(destinationPath, overwrite: true);
+
+                SelectedPatches.Add(new PatchItemViewModel
+                {
+                    FilePath = destinationPath,
+                    PatchName = entry.Name,
+                    Format = Path.GetExtension(entry.Name).TrimStart('.').ToUpper(),
+                    IsEnabled = res.IsEnabled // Початковий стан із вікна вибору
+                });
+            }
+            UpdateStatus($"Added {multiResults.Count} patches from ZIP.", "LimeGreen");
+        }
+        
+        else
+        {
+            var singleResult = await _windowService.ShowSelectZipSingleAsync(entryNames);
+            if (singleResult == null) return;
+
+            var entry = patchEntries.First(e => e.FullName == singleResult.SelectedFullName);
+            
+            string tempFolder = Path.Combine(Path.GetTempPath(), "Padcher2XQ_Temp", Guid.NewGuid().ToString());
+            Directory.CreateDirectory(tempFolder);
+            string destinationPath = Path.Combine(tempFolder, entry.Name);
+            entry.ExtractToFile(destinationPath, overwrite: true);
+
+            PatchPath = destinationPath;
+            UpdateStatus($"Loaded {entry.Name} from ZIP.", "LimeGreen");
         }
     }
+    catch (Exception ex)
+    {
+        UpdateStatus($"ZIP Error: {ex.Message}", "Red");
+    }
+}
+
 
     //Utils
    
@@ -362,13 +378,33 @@ public partial class MainWindowViewModel : ViewModelBase
             RaStatusColor = "IndianRed";
         }
     }
+   
     private void ExtractAndAddPatch(ZipArchiveEntry entry)
     {
-        string extractPath = Path.Combine(Path.GetTempPath(), entry.Name);
-        entry.ExtractToFile(extractPath, overwrite: true);
-        AddPatchToList(extractPath);
-    }
+        string tempFolder = Path.Combine(Path.GetTempPath(), "Padcher2XQ_Temp", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempFolder);
 
+        string destinationPath = Path.Combine(tempFolder, entry.Name);
+        entry.ExtractToFile(destinationPath, overwrite: true);
+
+        if (IsMultiPatchMode)
+        {
+            var patchItem = new PatchItemViewModel
+            {
+                FilePath = destinationPath,
+                PatchName = entry.Name,
+                Format = Path.GetExtension(entry.Name).TrimStart('.').ToUpper(),
+                IsEnabled = true 
+            };
+
+            SelectedPatches.Add(patchItem);
+        }
+        else
+        {
+            PatchPath = destinationPath;
+        }
+    }
+    
     public void UpdateStatus(string message, string color)
     {
         StatusMessage = message;
