@@ -111,16 +111,15 @@
                     <Button Grid.Row="1" Content="Add Patches..." Command="{Binding SelectPatchFileCommand}" HorizontalAlignment="Stretch" Margin="0,8,0,0"/>
                     
                 </Grid>
-                <!-- Preset Panel -->
                 <Grid ColumnDefinitions="*, Auto, Auto" Margin="0,4,0,4" IsVisible="{Binding IsMultiPatchMode}">
                     <TextBlock Text="Presets &amp; Sessions" VerticalAlignment="Center" FontSize="12" Foreground="Gray"/>
     
                     <Button Grid.Column="1" Content="Save Preset..." 
-                            Command="{Binding SavePresetCommand}" 
+                            Click="SavePreset_Click" 
                             Padding="6,3" FontSize="11" Margin="0,0,4,0"/>
             
                     <Button Grid.Column="2" Content="Load Preset..." 
-                            Command="{Binding LoadPresetCommand}" 
+                            Click="LoadPreset_Click" 
                             Padding="6,3" FontSize="11"/>
                 </Grid>
 

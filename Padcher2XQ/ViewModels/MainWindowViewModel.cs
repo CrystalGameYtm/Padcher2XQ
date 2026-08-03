@@ -368,7 +368,8 @@ public partial class MainWindowViewModel : ViewModelBase
         entry.ExtractToFile(extractPath, overwrite: true);
         AddPatchToList(extractPath);
     }
-    private void UpdateStatus(string message, string color)
+
+    public void UpdateStatus(string message, string color)
     {
         StatusMessage = message;
         StatusMessageColor = color;
@@ -376,7 +377,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void OpenSettings() => _windowService.ShowSettingsWindow();
     
-    // Launcher Mover
+    // MultiPatch Utils
     [RelayCommand]
     private void MovePatchUp(PatchItemViewModel item)
     {
@@ -396,5 +397,46 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         SelectedPatches.Remove(item);
         ApplyPatchCommand.NotifyCanExecuteChanged();
+    }
+    
+    [RelayCommand]
+    private async Task SavePresetAsync(string? filePath)
+    {
+        if (string.IsNullOrEmpty(filePath) || !SelectedPatches.Any()) return;
+
+        var items = SelectedPatches.Select(p => new PatchProfileItem
+        {
+            Path = p.FilePath,
+            IsEnabled = p.IsEnabled
+        });
+
+        await _profileService.SaveProfileAsync(filePath, items);
+        UpdateStatus("Preset saved successfully!", "Green");
+    }
+
+    [RelayCommand]
+    private async Task LoadPresetAsync(string? filePath)
+    {
+        if (string.IsNullOrEmpty(filePath)) return;
+
+        var profile = await _profileService.LoadProfileAsync(filePath);
+        if (profile != null && profile.Patches.Any())
+        {
+            SelectedPatches.Clear();
+            foreach (var item in profile.Patches)
+            {
+                if (System.IO.File.Exists(item.Path))
+                {
+                    SelectedPatches.Add(new PatchItemViewModel
+                    {
+                        FilePath = item.Path,
+                        PatchName = System.IO.Path.GetFileName(item.Path),
+                        IsEnabled = item.IsEnabled,
+                        Format = System.IO.Path.GetExtension(item.Path).TrimStart('.').ToUpper()
+                    });
+                }
+            }
+            UpdateStatus($"Loaded preset: {profile.Name}", "DodgerBlue");
+        }
     }
 }
