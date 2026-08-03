@@ -4,22 +4,25 @@ using Padcher2XQ.Views;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Avalonia.Controls;
 
 namespace Padcher2XQ.Services;
 
 public interface IWindowService
 {
     void ShowSettingsWindow();
-    Task<List<string>?> ShowSelectZipAsync(List<string> entries, bool isMultiMode);
+    
+    Task<SingleZipResult?> ShowSelectZipSingleAsync(IEnumerable<string> entries);
+    
+    Task<List<MultiZipResult>?> ShowSelectZipMultiAsync(IEnumerable<string> entries);
 }
 
 public class WindowService(IServiceProvider serviceProvider) : IWindowService
 {
-    void IWindowService.ShowSettingsWindow()
+    public void ShowSettingsWindow()
     {
         var app = serviceProvider.GetRequiredService<App>();
         var mainWindow = app.GetMainWindow();
-        
         if (mainWindow is not null)
         {
             var settingsWindow = new SettingsWindow
@@ -30,17 +33,27 @@ public class WindowService(IServiceProvider serviceProvider) : IWindowService
         }
     }
 
-    public async Task<List<string>?> ShowSelectZipAsync(List<string> entries, bool isMultiMode)
+    public async Task<SingleZipResult?> ShowSelectZipSingleAsync(IEnumerable<string> entries)
     {
-        var viewarchive = new SelectZipViewModel(entries, isMultiMode);
-        var zipwindow = new SelectZipWindow() { DataContext = viewarchive };
-    
-        var mainWindow = (Avalonia.Application.Current?.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)?.MainWindow;
-        if (mainWindow != null)
-        {
-            return await zipwindow.ShowDialog<List<string>?>(mainWindow);
-        }
-        return null;
+        var app = serviceProvider.GetRequiredService<App>();
+        var mainWindow = app.GetMainWindow();
+        if (mainWindow is null) return null;
+
+        var vm = new SelectZipViewModel(entries, isMultiMode: false);
+        var window = new SelectZipWindow { DataContext = vm };
+
+        return await window.ShowDialog<SingleZipResult?>(mainWindow);
+    }
+
+    public async Task<List<MultiZipResult>?> ShowSelectZipMultiAsync(IEnumerable<string> entries)
+    {
+        var app = serviceProvider.GetRequiredService<App>();
+        var mainWindow = app.GetMainWindow();
+        if (mainWindow is null) return null;
+
+        var vm = new SelectZipViewModel(entries, isMultiMode: true);
+        var window = new SelectZipWindow { DataContext = vm };
+
+        return await window.ShowDialog<List<MultiZipResult>?>(mainWindow);
     }
 }
-    
