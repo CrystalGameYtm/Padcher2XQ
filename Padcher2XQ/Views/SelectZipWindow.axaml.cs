@@ -13,12 +13,25 @@ public partial class SelectZipWindow : Window
 
     private void SelectButton_Click(object? sender, RoutedEventArgs e)
     {
-        var vm = DataContext as SelectZipViewModel;
-        Close(vm?.SelectedEntry); 
+        if (DataContext is SelectZipViewModel vm)
+        {
+            if (vm.IsMultiMode)
+            {
+                Close(vm.GetMultiResults());
+            }
+            else
+            {
+                Close(vm.GetSingleResult());
+            }
+        }
+        else
+        {
+            Close(null);
+        }
     }
 
     private void CancelButton_Click(object? sender, RoutedEventArgs e)
     {
-        Close(null); 
+        Close(null);
     }
 }
