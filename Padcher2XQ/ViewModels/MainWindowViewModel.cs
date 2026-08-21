@@ -38,6 +38,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private string _raStatusColor = "Gray";
     public ObservableCollection<RomEntry> RomHistoryEntries { get; } = new();
     public ObservableCollection<PatchEntry> PatchHistoryEntries { get; } = new();
+
     [ObservableProperty] private string _statusMessage = "Ready to patch.";
     [ObservableProperty] private string _statusMessageColor = "Gray";
     [ObservableProperty] private bool _fixInternalChecksum = false;
@@ -60,7 +61,7 @@ public partial class MainWindowViewModel : ViewModelBase
     //Rom file
     
     [RelayCommand]
-    private async Task SelectRomFile()
+    public async Task SelectRomFile()
     {
         var paths = await _fileDialogService.OpenFileAsync("Select ROM File", new[] { "*.nes", "*.iso", "*.gen", "*.n64", "*.gbc", "*.md", "*.z64", "*.sfc", "*.smc", "*.bin", "*.gba", "*.nds" });
         if (paths?.FirstOrDefault() is string path_rom)
@@ -122,7 +123,7 @@ public partial class MainWindowViewModel : ViewModelBase
         ApplyPatchCommand.NotifyCanExecuteChanged();
     }
     [RelayCommand]
-    private async Task SelectPatchFile()
+    public async Task SelectPatchFile()
     {
         var paths = await _fileDialogService.OpenFileAsync(
             IsMultiPatchMode ? "Select Patches or ZIP" : "Select Patch or ZIP", 
@@ -147,7 +148,7 @@ public partial class MainWindowViewModel : ViewModelBase
     //Output File
     
     [RelayCommand]
-    private async Task SelectOutputFile()
+    public async Task SelectOutputFile()
     {
         string ext = string.IsNullOrEmpty(RomPath) ? "sfc" : Path.GetExtension(RomPath).TrimStart('.');
         var path = await _fileDialogService.SaveFileAsync("Save Patched ROM", "patched_rom", ext);
@@ -158,7 +159,7 @@ public partial class MainWindowViewModel : ViewModelBase
         if (string.IsNullOrEmpty(RomPath)) return;
         string ext = Path.GetExtension(RomPath);
         var name = Path.GetFileNameWithoutExtension(PatchPath);
-        if (string.IsNullOrEmpty(name)) name = Path.GetFileNameWithoutExtension(RomPath) + "_patched";
+        if (string.IsNullOrEmpty(name)) name = Path.GetFileNameWithoutExtension(PatchPath);
         string dir = Path.GetDirectoryName(RomPath) ?? string.Empty;
         OutputPath = Path.Combine(dir, $"{name}{ext}");
     }
@@ -411,7 +412,7 @@ public partial class MainWindowViewModel : ViewModelBase
         StatusMessageColor = color;
     }
     [RelayCommand]
-    private void OpenSettings() => _windowService.ShowSettingsWindow();
+    public void OpenSettings() => _windowService.ShowSettingsWindow();
     
     // MultiPatch Utils
     [RelayCommand]

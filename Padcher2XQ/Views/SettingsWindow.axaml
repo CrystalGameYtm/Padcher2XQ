@@ -3,48 +3,116 @@
         xmlns:vm="using:Padcher2XQ.ViewModels"
         x:Class="Padcher2XQ.Views.SettingsWindow"
         x:DataType="vm:SettingsViewModel"
-        x:CompileBindings="False"
-        Title="Settings"
+        Title="Settings — Padcher2XQ"
         Width="480" Height="520"
         CanResize="False"
-        WindowStartupLocation="CenterOwner">
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SystemRegionBrush}">
 
-    <Design.DataContext>
-        <vm:SettingsViewModel/>
-    </Design.DataContext>
-    <StackPanel Spacing="15" Margin="20">
-        <TextBlock Text="Application Settings" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
-        <CheckBox Content="Use Dark Mode" IsChecked="{Binding IsDarkMode}"/>
-        <StackPanel Spacing="5">
-            <TextBlock Text="Path to asar executable:"/>
-            <Grid ColumnDefinitions="*,Auto">
-                <TextBox Grid.Column="0" Text="{Binding AsarPath}" PlaceholderText="e.g. asar.exe or /usr/bin/asar" Margin="0,0,8,0"/>
-                <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectAsarFileCommand}"/>
-            </Grid>
-        </StackPanel>
-
-        <StackPanel Spacing="5">
-            <TextBlock Text="Path to xdelta3 executable:"/>
-            <Grid ColumnDefinitions="*,Auto">
-                <TextBox Grid.Column="0" Text="{Binding XdeltaPath}" PlaceholderText="e.g. xdelta3.exe or /usr/bin/xdelta3" Margin="0,0,8,0"/>
-                <Button Grid.Column="1" Content="..." Width="40" Command="{Binding SelectXdeltaFileCommand}"/>
-            </Grid>
-        </StackPanel>
-        <Separator Background="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" Margin="0,10"/>
+    <DockPanel Margin="16">
         
-        <TextBlock Text="RetroAchievements API Integration" FontWeight="SemiBold"/>
-        
-        <StackPanel Spacing="5">
-            <TextBlock Text="RA Username:"/>
-            <TextBox Text="{Binding RaUser}" PlaceholderText="Enter your RetroAchievements Username"/>
+        <!-- Нижня кнопка закриття -->
+        <StackPanel DockPanel.Dock="Bottom" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right" 
+                    Margin="0,16,0,0">
+            <Button Content="Done" 
+                    Classes="ApplyAction" 
+                    Click="CloseButton_Click" 
+                    Width="100" 
+                    HorizontalContentAlignment="Center"/>
         </StackPanel>
 
-        <StackPanel Spacing="5">
-            <TextBlock Text="Web API Key:"/>
-            <TextBox Text="{Binding RaApiKey}" PlaceholderText="Enter your Web API Key" PasswordChar="•"/>
-        </StackPanel>
-        <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right" Margin="0,20,0,0">
-            <Button Content="Close" IsDefault="True" Width="80" HorizontalContentAlignment="Center" Click="OnCloseClick"/>
-        </StackPanel>
-    </StackPanel>
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="10">
+
+                <!-- 1. ТЕМА ОФОРМЛЕННЯ -->
+                <Border Classes="Card">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="APPEARANCE" Classes="SectionHeader"/>
+                        <Grid ColumnDefinitions="*, Auto">
+                            <TextBlock Text="Dark Mode Theme" VerticalAlignment="Center" FontSize="13"/>
+                            <ToggleSwitch Grid.Column="1" 
+                                          IsChecked="{Binding IsDarkMode, Mode=TwoWay}"
+                                          OnContent="Dark" 
+                                          OffContent="Light" 
+                                          FontSize="12"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- 2. ЗОВНІШНІ ІНСТРУМЕНТИ (ASAR ТА XDELTA3) -->
+                <Border Classes="Card">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="EXTERNAL EXECUTABLES" Classes="SectionHeader"/>
+                        
+                        <!-- Asar Path -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Asar Executable Path" FontSize="12" Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <Grid ColumnDefinitions="*, Auto">
+                                <TextBox Grid.Column="0" 
+                                         Text="{Binding AsarPath}" 
+                                         PlaceholderText="Path to asar binary..." 
+                                         IsReadOnly="True"
+                                         VerticalContentAlignment="Center"
+                                         CornerRadius="6,0,0,6"/>
+                                <Button Grid.Column="1" 
+                                        Content="Browse..." 
+                                        Command="{Binding SelectAsarFileCommand}" 
+                                        CornerRadius="0,6,6,0"
+                                        Padding="12,0" 
+                                        Height="32" 
+                                        VerticalContentAlignment="Center"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Xdelta3 Path -->
+                        <StackPanel Spacing="4" Margin="0,4,0,0">
+                            <TextBlock Text="Xdelta3 Executable Path" FontSize="12" Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <Grid ColumnDefinitions="*, Auto">
+                                <TextBox Grid.Column="0" 
+                                         Text="{Binding XdeltaPath}" 
+                                         PlaceholderText="Path to xdelta binary..." 
+                                         IsReadOnly="True"
+                                         VerticalContentAlignment="Center"
+                                         CornerRadius="6,0,0,6"/>
+                                <Button Grid.Column="1" 
+                                        Content="Browse..." 
+                                        Command="{Binding SelectXdeltaFileCommand}" 
+                                        CornerRadius="0,6,6,0"
+                                        Padding="12,0" 
+                                        Height="32" 
+                                        VerticalContentAlignment="Center"/>
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- 3. RETROACHIEVEMENTS ІНТЕГРАЦІЯ -->
+                <Border Classes="Card">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="RETROACHIEVEMENTS CREDENTIALS" Classes="SectionHeader"/>
+                        
+                        <!-- User Name -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Username" FontSize="12" Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <TextBox Text="{Binding RaUser, Mode=TwoWay}" 
+                                     PlaceholderText="RA Username..." 
+                                     CornerRadius="6"/>
+                        </StackPanel>
+
+                        <!-- API Key -->
+                        <StackPanel Spacing="4" Margin="0,4,0,0">
+                            <TextBlock Text="Web API Key" FontSize="12" Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                            <TextBox Text="{Binding RaApiKey, Mode=TwoWay}" 
+                                     PasswordChar="•" 
+                                     PlaceholderText="RA API Key..." 
+                                     CornerRadius="6"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
 </Window>
