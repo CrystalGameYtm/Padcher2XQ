@@ -13,7 +13,6 @@ public class RetroAchievementsService
     public RetroAchievementsService(SettingsService settings)
     {
         _httpClient = new HttpClient();
-        // Сервери RA дуже не люблять "анонімні" запити, тому представляємось:
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "Padcher2XQ/1.0");
         _settings = settings;
     }

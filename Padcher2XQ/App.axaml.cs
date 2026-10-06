@@ -33,6 +33,7 @@ public class App : Application
         services.AddSingleton<RetroAchievementsService>(); 
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<SettingsViewModel>();
+        services.AddSingleton<ArchiveService>();
         var provider = services.BuildServiceProvider();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)

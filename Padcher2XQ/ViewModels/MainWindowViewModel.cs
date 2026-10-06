@@ -14,13 +14,17 @@ namespace Padcher2XQ.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
+    public ObservableCollection<RomEntry> RomHistoryEntries { get; } = new();
+    public ObservableCollection<PatchEntry> PatchHistoryEntries { get; } = new();
+    public ObservableCollection<PatchItemViewModel> SelectedPatches { get; } = new();
     private readonly HistoryService _historyService;
     private readonly IWindowService _windowService;
     private readonly IFileDialogService _fileDialogService;
     private readonly PatcherService _patcherService;
     private readonly ChecksumService _checksumService;
     private readonly RetroAchievementsService _raService; 
-    public ObservableCollection<PatchItemViewModel> SelectedPatches { get; } = new();
+    private readonly ProfileService _profileService = new();
+    private readonly ArchiveService _archiveService;
     [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))] private string? _romPath;
     [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))] private string? _patchPath;
     [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(ApplyPatchCommand))] private string? _outputPath;
@@ -36,18 +40,15 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private Func<Task>? _loadHistory;
     [ObservableProperty] private string _raStatus = "Waiting for patch...";
     [ObservableProperty] private string _raStatusColor = "Gray";
-    public ObservableCollection<RomEntry> RomHistoryEntries { get; } = new();
-    public ObservableCollection<PatchEntry> PatchHistoryEntries { get; } = new();
-
     [ObservableProperty] private string _statusMessage = "Ready to patch.";
     [ObservableProperty] private string _statusMessageColor = "Gray";
     [ObservableProperty] private bool _fixInternalChecksum = false;
-    public MainWindowViewModel(
-        IWindowService windowService, 
-        IFileDialogService fileDialogService, 
-        PatcherService patcherService, 
+    public MainWindowViewModel(IWindowService windowService,
+        IFileDialogService fileDialogService,
+        PatcherService patcherService,
         ChecksumService checksumService,
-        RetroAchievementsService raService) 
+        RetroAchievementsService raService,
+        ArchiveService archiveService) 
     {
         _historyService = new HistoryService();
         _windowService = windowService;
@@ -55,6 +56,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _patcherService = patcherService;
         _checksumService = checksumService;
         _raService = raService;
+        _archiveService = archiveService;
         _ = LoadHistoryAsync(); 
     }
     
@@ -166,7 +168,7 @@ public partial class MainWindowViewModel : ViewModelBase
     
     //Multipatch Session
     
-    private readonly ProfileService _profileService = new();
+    
 
     public async Task InitializeAsync()
     {
@@ -295,71 +297,56 @@ public partial class MainWindowViewModel : ViewModelBase
         ApplyPatchCommand.NotifyCanExecuteChanged();
     }
 
-   private async Task HandleZipFileAsync(string zipPath)
-{
-    var validExtensions = new[] { ".ips", ".bps", ".ups", ".xdelta", ".asm" };
-    try
+    private async Task HandleZipFileAsync(string archivePath)
     {
-        using var archive = ZipFile.OpenRead(zipPath);
-        var patchEntries = archive.Entries
-            .Where(e => validExtensions.Contains(Path.GetExtension(e.FullName).ToLower()))
-            .ToList();
-
-        if (patchEntries.Count == 0)
+        try
         {
-            UpdateStatus("No valid patches found in ZIP.", "IndianRed");
-            return;
-        }
+            var patchEntries = _archiveService.GetPatchEntries(archivePath);
 
-        var entryNames = patchEntries.Select(e => e.FullName).ToList();
-
-        if (IsMultiPatchMode)
-        {
-            var multiResults = await _windowService.ShowSelectZipMultiAsync(entryNames);
-            if (multiResults == null || multiResults.Count == 0) return;
-
-            foreach (var res in multiResults)
+            if (patchEntries.Count == 0)
             {
-                var entry = patchEntries.First(e => e.FullName == res.FullName);
-                
-                string tempFolder = Path.Combine(Path.GetTempPath(), "Padcher2XQ_Temp", Guid.NewGuid().ToString());
-                Directory.CreateDirectory(tempFolder);
-                string destinationPath = Path.Combine(tempFolder, entry.Name);
-                entry.ExtractToFile(destinationPath, overwrite: true);
-
-                SelectedPatches.Add(new PatchItemViewModel
-                {
-                    FilePath = destinationPath,
-                    PatchName = entry.Name,
-                    Format = Path.GetExtension(entry.Name).TrimStart('.').ToUpper(),
-                    IsEnabled = res.IsEnabled // Початковий стан із вікна вибору
-                });
+                UpdateStatus("No valid patches found in the archive.", "IndianRed");
+                return;
             }
-            UpdateStatus($"Added {multiResults.Count} patches from ZIP.", "LimeGreen");
+
+            var entryNames = patchEntries.Select(e => e.FullKey).ToList();
+
+            if (IsMultiPatchMode)
+            {
+                var multiResults = await _windowService.ShowSelectZipMultiAsync(entryNames);
+                if (multiResults == null || multiResults.Count == 0) return;
+
+                foreach (var res in multiResults)
+                {
+                    string extractedPath = await _archiveService.ExtractPatchAsync(archivePath, res.FullName);
+
+                    SelectedPatches.Add(new PatchItemViewModel
+                    {
+                        FilePath = extractedPath,
+                        PatchName = Path.GetFileName(extractedPath),
+                        Format = Path.GetExtension(extractedPath).TrimStart('.').ToUpper(),
+                        IsEnabled = res.IsEnabled
+                    });
+                }
+
+                UpdateStatus($"Added {multiResults.Count} patch(es) from archive.", "LimeGreen");
+            }
+            else
+            {
+                var singleResult = await _windowService.ShowSelectZipSingleAsync(entryNames);
+                if (singleResult == null) return;
+                
+                string extractedPath = await _archiveService.ExtractPatchAsync(archivePath, singleResult.SelectedFullName);
+
+                PatchPath = extractedPath;
+                UpdateStatus($"Loaded {Path.GetFileName(extractedPath)} from archive.", "LimeGreen");
+            }
         }
-        
-        else
+        catch (Exception ex)
         {
-            var singleResult = await _windowService.ShowSelectZipSingleAsync(entryNames);
-            if (singleResult == null) return;
-
-            var entry = patchEntries.First(e => e.FullName == singleResult.SelectedFullName);
-            
-            string tempFolder = Path.Combine(Path.GetTempPath(), "Padcher2XQ_Temp", Guid.NewGuid().ToString());
-            Directory.CreateDirectory(tempFolder);
-            string destinationPath = Path.Combine(tempFolder, entry.Name);
-            entry.ExtractToFile(destinationPath, overwrite: true);
-
-            PatchPath = destinationPath;
-            UpdateStatus($"Loaded {entry.Name} from ZIP.", "LimeGreen");
+            UpdateStatus($"Archive Error: {ex.Message}", "Red");
         }
     }
-    catch (Exception ex)
-    {
-        UpdateStatus($"ZIP Error: {ex.Message}", "Red");
-    }
-}
-
 
     //Utils
    
