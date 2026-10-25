@@ -46,9 +46,13 @@ public class PatcherService
 
     public async Task ApplyMultiplePatchesAsync(string romPath, List<string> patchPaths, string finalOutputPath, bool restoreInternalChecksum = false)
     {
-        string tempFile1 = Path.Combine(Path.GetTempPath(), $"padcher_temp1_{Guid.NewGuid()}.sfc");
-        string tempFile2 = Path.Combine(Path.GetTempPath(), $"padcher_temp2_{Guid.NewGuid()}.sfc");
-        
+        if (patchPaths.Count == 0)
+            throw new InvalidOperationException("No patches to apply.");
+
+        string tempExt = Path.GetExtension(romPath);
+        string tempFile1 = Path.Combine(Path.GetTempPath(), $"padcher_temp1_{Guid.NewGuid()}{tempExt}");
+        string tempFile2 = Path.Combine(Path.GetTempPath(), $"padcher_temp2_{Guid.NewGuid()}{tempExt}");
+
         File.Copy(romPath, tempFile1, true);
         string currentSource = tempFile1;
         string currentTarget = tempFile2;
@@ -135,28 +139,72 @@ public class PatcherService
 
     private async Task ApplyAsmPatchAsync(string romPath, string patchPath, string outputPath)
     {
-        string asarPath = _settings.Config.AsarPath;
-        if (string.IsNullOrWhiteSpace(asarPath)) asarPath = "asar.exe";
-        if (Path.IsPathRooted(asarPath) && !File.Exists(asarPath))
-            throw new FileNotFoundException($"Asar executable not found at: {asarPath}");
+        string asarPath = ResolveTool(_settings.Config.AsarPath, "asar");
         File.Copy(romPath, outputPath, true);
+        await RunToolAsync(asarPath, new[] { patchPath, outputPath }, "Asar");
+    }
+
+    /// <summary>
+    /// Empty setting -> "asar" / "xdelta3" (+ ".exe" on Windows).
+    /// Old configs stored "asar.exe" / "xdelta3.exe" as default, which does not exist on Linux/macOS.
+    /// </summary>
+    private static string ResolveTool(string? configured, string baseName)
+    {
+        if (string.IsNullOrWhiteSpace(configured))
+            return OperatingSystem.IsWindows() ? baseName + ".exe" : baseName;
+
+        if (!OperatingSystem.IsWindows() &&
+            string.Equals(configured, baseName + ".exe", StringComparison.OrdinalIgnoreCase))
+            return baseName;
+
+        return configured;
+    }
+
+    /// <summary>
+    /// Runs an external tool. stdout/stderr are read concurrently with waiting for exit,
+    /// otherwise the process can block forever once its pipe buffer fills up.
+    /// ArgumentList avoids quoting problems with paths that contain quotes/spaces.
+    /// </summary>
+    private static async Task RunToolAsync(string exePath, IEnumerable<string> args, string toolName)
+    {
+        if (Path.IsPathRooted(exePath) && !File.Exists(exePath))
+            throw new FileNotFoundException($"{toolName} executable not found at: {exePath}");
+
         var startInfo = new ProcessStartInfo
         {
-            FileName = asarPath,
-            Arguments = $"\"{patchPath}\" \"{outputPath}\"",
+            FileName = exePath,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true
         };
+        foreach (var arg in args) startInfo.ArgumentList.Add(arg);
 
-        using var process = Process.Start(startInfo);
-        if (process == null) throw new Exception("Failed to start Asar process.");
-        await process.WaitForExitAsync();
-        if (process.ExitCode != 0)
+        Process process;
+        try
         {
-            string error = await process.StandardError.ReadToEndAsync();
-            throw new Exception($"Asar Error: {error}");
+            process = Process.Start(startInfo) ?? throw new Exception($"Failed to start {toolName}.");
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            throw new FileNotFoundException(
+                $"{toolName} was not found ('{exePath}'). Set its path in Settings or add it to PATH.");
+        }
+
+        using (process)
+        {
+            var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            string stdout = await stdoutTask;
+            string stderr = await stderrTask;
+
+            if (process.ExitCode != 0)
+            {
+                string message = string.IsNullOrWhiteSpace(stderr) ? stdout : stderr;
+                throw new Exception($"{toolName} error (code {process.ExitCode}): {message.Trim()}");
+            }
         }
     }
 
@@ -195,29 +243,8 @@ public class PatcherService
 
     private async Task ApplyXdeltaPatchAsync(string romPath, string patchPath, string outputPath)
     {
-        string xdeltaPath = _settings.Config.XdeltaPath;
-        if (string.IsNullOrWhiteSpace(xdeltaPath)) xdeltaPath = "xdelta3.exe";
-
-        if (Path.IsPathRooted(xdeltaPath) && !File.Exists(xdeltaPath))
-            throw new FileNotFoundException($"xDelta3 executable not found at: {xdeltaPath}");
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = xdeltaPath,
-            Arguments = $"-d -f -s \"{romPath}\" \"{patchPath}\" \"{outputPath}\"",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-        using var process = Process.Start(startInfo);
-        if (process == null) throw new Exception("Failed to start xdelta3 process.");
-        await process.WaitForExitAsync();
-        if (process.ExitCode != 0)
-        {
-            string error = await process.StandardError.ReadToEndAsync();
-            if (string.IsNullOrWhiteSpace(error)) error = await process.StandardOutput.ReadToEndAsync();
-            throw new Exception($"Xdelta Error (Code {process.ExitCode}): {error}");
-        }
+        string xdeltaPath = ResolveTool(_settings.Config.XdeltaPath, "xdelta3");
+        await RunToolAsync(xdeltaPath, new[] { "-d", "-f", "-s", romPath, patchPath, outputPath }, "xdelta3");
     }
     public async Task ApplyIpsPatchAsync(string romPath, string patchPath, string outputPath)
     {

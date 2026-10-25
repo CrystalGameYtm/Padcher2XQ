@@ -96,36 +96,59 @@
                             BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" 
                             BorderThickness="1" 
                             CornerRadius="6">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                            <ListBox ItemsSource="{Binding SelectedPatches}" 
-                                     Background="Transparent" 
+                        <ScrollViewer x:Name="PatchScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <ListBox x:Name="PatchList"
+                                     ItemsSource="{Binding SelectedPatches}"
+                                     Background="Transparent"
                                      Padding="4">
+                                <!-- Non-virtualizing panel: the dragged container must not be recycled while auto-scrolling -->
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel />
+                                    </ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
                                 <ListBox.ItemTemplate>
                                     <DataTemplate DataType="vm:PatchItemViewModel">
-                                        <Grid ColumnDefinitions="Auto, *, Auto, Auto" 
+                                        <Grid ColumnDefinitions="Auto, Auto, *, Auto, Auto"
                                               Margin="2,3"
-                                              Background="Transparent"
-                                              PointerPressed="Item_PointerPressed"
-                                              PointerMoved="Item_PointerMoved"
-                                              PointerReleased="Item_PointerReleased">
-                                            
-                                            <CheckBox Grid.Column="0" 
+                                              Background="Transparent">
+
+                                            <!-- Drag handle: press and drag to move the patch to any position -->
+                                            <Border Grid.Column="0"
+                                                    Width="22"
+                                                    Background="Transparent"
+                                                    Cursor="SizeAll"
+                                                    VerticalAlignment="Stretch"
+                                                    ToolTip.Tip="Drag to reorder"
+                                                    PointerPressed="Grip_PointerPressed"
+                                                    PointerMoved="Grip_PointerMoved"
+                                                    PointerReleased="Grip_PointerReleased"
+                                                    PointerCaptureLost="Grip_PointerCaptureLost">
+                                                <TextBlock Text="≡"
+                                                           FontSize="18"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"
+                                                           Opacity="0.6"
+                                                           IsHitTestVisible="False"/>
+                                            </Border>
+
+                                            <CheckBox Grid.Column="1"
                                                       IsChecked="{Binding IsEnabled, Mode=TwoWay}" 
                                                       VerticalAlignment="Center" 
                                                       Margin="0,0,8,0"/>
                                             
-                                            <TextBlock Grid.Column="1" 
-                                                       Text="{Binding PatchName}" 
+                                            <TextBlock Grid.Column="2"
+                                                       Text="{Binding PatchName}"
                                                        VerticalAlignment="Center" 
                                                        FontWeight="Medium" 
                                                        FontSize="13"
                                                        TextTrimming="CharacterEllipsis"/>
                                             
-                                            <Border Grid.Column="2" 
-                                                    Background="{DynamicResource SystemControlBackgroundBaseLowBrush}" 
-                                                    CornerRadius="4" 
-                                                    Padding="6,2" 
-                                                    Margin="8,0" 
+                                            <Border Grid.Column="3"
+                                                    Background="{DynamicResource SystemControlBackgroundBaseLowBrush}"
+                                                    CornerRadius="4"
+                                                    Padding="6,2"
+                                                    Margin="8,0"
                                                     VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding Format}" 
                                                            FontSize="10" 
@@ -133,7 +156,7 @@
                                                            Foreground="{DynamicResource SystemAccentColor}"/>
                                             </Border>
                                             
-                                            <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="2">
+                                            <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="2">
                                                 <Button Content="▲" 
                                                         Classes="IconButton"
                                                         Command="{Binding $parent[Window].DataContext.MovePatchUpCommand}" 

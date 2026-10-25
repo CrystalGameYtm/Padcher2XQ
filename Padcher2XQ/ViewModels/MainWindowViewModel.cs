@@ -89,6 +89,18 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanApplyPatch))]
     private async Task ApplyPatch()
     {
+        if (IsSamePath(OutputPath!, RomPath!))
+        {
+            UpdateStatus("Output file must differ from the original ROM.", "IndianRed");
+            return;
+        }
+
+        if (IsMultiPatchMode && !SelectedPatches.Any(p => p.IsEnabled))
+        {
+            UpdateStatus("No enabled patches in the queue.", "IndianRed");
+            return;
+        }
+
         UpdateStatus("Applying patches...", "DodgerBlue");
         RaStatus = "Checking..."; RaStatusColor = "Goldenrod";
 
@@ -159,12 +171,27 @@ public partial class MainWindowViewModel : ViewModelBase
     private void GenerateDefaultOutputPath()
     {
         if (string.IsNullOrEmpty(RomPath)) return;
+
         string ext = Path.GetExtension(RomPath);
-        var name = Path.GetFileNameWithoutExtension(PatchPath);
-        if (string.IsNullOrEmpty(name)) name = Path.GetFileNameWithoutExtension(PatchPath);
         string dir = Path.GetDirectoryName(RomPath) ?? string.Empty;
-        OutputPath = Path.Combine(dir, $"{name}{ext}");
+        string romName = Path.GetFileNameWithoutExtension(RomPath);
+
+        // In multi-patch mode PatchPath may be a stale value from single mode
+        string? patchName = IsMultiPatchMode ? null : Path.GetFileNameWithoutExtension(PatchPath);
+        string name = string.IsNullOrEmpty(patchName) ? $"{romName}_patched" : patchName;
+
+        string candidate = Path.Combine(dir, $"{name}{ext}");
+
+        // never propose overwriting the source ROM
+        if (IsSamePath(candidate, RomPath))
+            candidate = Path.Combine(dir, $"{romName}_patched{ext}");
+
+        OutputPath = candidate;
     }
+
+    private static bool IsSamePath(string a, string b) =>
+        string.Equals(Path.GetFullPath(a), Path.GetFullPath(b),
+            OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
     
     //Multipatch Session
     
@@ -402,6 +429,16 @@ public partial class MainWindowViewModel : ViewModelBase
     public void OpenSettings() => _windowService.ShowSettingsWindow();
     
     // MultiPatch Utils
+    /// <summary>Moves a patch to an arbitrary position (used by mouse drag-and-drop).</summary>
+    public void MovePatchTo(int oldIndex, int newIndex)
+    {
+        int last = SelectedPatches.Count - 1;
+        if (oldIndex < 0 || oldIndex > last) return;
+        newIndex = Math.Clamp(newIndex, 0, last);
+        if (oldIndex == newIndex) return;
+        SelectedPatches.Move(oldIndex, newIndex);
+    }
+
     [RelayCommand]
     private void MovePatchUp(PatchItemViewModel item)
     {

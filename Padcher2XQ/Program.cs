@@ -18,9 +18,9 @@ class Program
                 AttachConsole(ATTACH_PARENT_PROCESS);
             }
 
-            RunCliModeAsync(args).GetAwaiter().GetResult();
-            
-            Environment.Exit(0);
+            int exitCode = RunCliModeAsync(args).GetAwaiter().GetResult();
+
+            Environment.Exit(exitCode);
         }
         else
         {
@@ -29,7 +29,7 @@ class Program
         }
     }
 
-    private static async Task RunCliModeAsync(string[] args)
+    private static async Task<int> RunCliModeAsync(string[] args)
     {
         Console.WriteLine("Padcher2XQ v2.1 - CLI Mode");
         
@@ -56,14 +56,26 @@ class Program
                 case "-help":
                 case "-h":
                     PrintHelp();
-                    return;
+                    return 0;
             }
         }
         if (string.IsNullOrEmpty(romPath) || string.IsNullOrEmpty(patchPath))
         {
             Console.WriteLine("Error: Both -rom and -patch arguments are required!");
             PrintHelp();
-            Environment.Exit(1); 
+            return 1;
+        }
+
+        if (!System.IO.File.Exists(romPath))
+        {
+            Console.WriteLine($"Error: ROM not found: {romPath}");
+            return 1;
+        }
+
+        if (!System.IO.File.Exists(patchPath))
+        {
+            Console.WriteLine($"Error: Patch not found: {patchPath}");
+            return 1;
         }
 
         if (string.IsNullOrEmpty(outPath))
@@ -79,17 +91,28 @@ class Program
         Console.WriteLine($"Out:   {outPath}");
         Console.WriteLine("Patching...");
 
+        if (string.Equals(System.IO.Path.GetFullPath(outPath), System.IO.Path.GetFullPath(romPath),
+                OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+        {
+            Console.WriteLine("Error: output path must differ from the ROM path.");
+            return 1;
+        }
+
         try
         {
+            var settings = new Padcher2XQ.Services.SettingsService();
+            var patcher = new Padcher2XQ.Services.PatcherService(settings);
+            await patcher.PatchSingleFileAsync(romPath, patchPath, outPath);
+
             Console.WriteLine("Success! Patch applied correctly.");
-            Environment.Exit(0); 
+            return 0;
         }
         catch (Exception ex)
         {
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine($"Critical Error: {ex.Message}");
             Console.ResetColor();
-            Environment.Exit(1);
+            return 1;
         }
     }
 
@@ -104,9 +127,13 @@ class Program
     }
 
     public static AppBuilder BuildAvaloniaApp()
-        => AppBuilder.Configure<App>()
-            .UsePlatformDetect()
-            .UseWayland()
-            .WithInterFont()
-            .LogToTrace();
+    {
+        var builder = AppBuilder.Configure<App>().UsePlatformDetect();
+
+        // Wayland backend only makes sense on Linux
+        if (OperatingSystem.IsLinux())
+            builder = builder.UseWayland();
+
+        return builder.WithInterFont().LogToTrace();
+    }
 }

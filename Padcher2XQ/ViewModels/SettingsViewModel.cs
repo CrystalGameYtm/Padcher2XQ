@@ -35,13 +35,23 @@ public partial class SettingsViewModel : ViewModelBase
     public string RaUser
     {
         get => _settingsService.Config.RaUser;
-        set { _settingsService.Config.RaUser = value; OnPropertyChanged(); }
+        set
+        {
+            _settingsService.Config.RaUser = value;
+            OnPropertyChanged();
+            _settingsService.SaveSettings();
+        }
     }
 
     public string RaApiKey
     {
         get => _settingsService.Config.RaApiKey;
-        set { _settingsService.Config.RaApiKey = value; OnPropertyChanged(); }
+        set
+        {
+            _settingsService.Config.RaApiKey = value;
+            OnPropertyChanged();
+            _settingsService.SaveSettings();
+        }
     }
     [RelayCommand]
     private async Task SelectXdeltaFile()
